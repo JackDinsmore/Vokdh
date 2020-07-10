@@ -33,3 +33,5 @@
 
 # VS
 .vs/
+x64/Debug/
+Debug/
