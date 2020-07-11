@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable:4267)
 #include <vector>
 #include <string>
 
@@ -40,7 +41,7 @@ protected:
 		master = master->summon();
 	}
 
-	void postMessage(MESSAGE_TYPE type, std::string message) {
+	void postMessage(MESSAGE_TYPE type, std::string message) const {
 		master->queue.push_back({ type, message });
 	}
 
@@ -56,14 +57,14 @@ protected:
 	}
 
 protected:
-	bool peekMessage(Message* m, int i) {
+	bool peekMessage(Message* m, int i) const {
 		if (master->queue.size() > i && i >= 0) {
 			*m = master->queue[i];
 			return true;
 		}
 		return false;
 	}
-	bool popMessage(Message* m = nullptr) {
+	bool popMessage(Message* m = nullptr) const {
 		bool empty = true;
 		if (m != nullptr && !master->queue.empty()) {
 			*m = master->queue.back();
@@ -72,7 +73,7 @@ protected:
 		}
 		return !empty;
 	}
-	int getQueueSize() {
+	int getQueueSize() const {
 		return master->queue.size();
 	}
 

@@ -6,15 +6,20 @@ StyleMap::StyleMap() {
 	std::ifstream styleFile;
 	std::string line;
 	styleFile.open(exePath / STYLE_FILE);
+	std::string header = "";
 
 	if (styleFile.is_open()) {
 		while (getline(styleFile, line)) {
 			// key: value
+			if (line == "") { continue; }
 			unsigned colonPos = std::find(line.begin(), line.end(), ':') - line.begin();
-			std::string key = line.substr(0, colonPos);
+			unsigned startKey;
+			for (startKey = 0; line[startKey] == ' ' || line[startKey] == '\t'; startKey++);
+
+			std::string key = line.substr(startKey, colonPos);
 			unsigned startValue = colonPos + 1;
 			bool quoted = false;
-			while (line[startValue] == ' ' || line[startValue] == '\t' || line[startValue] == '\n' || line[startValue] == '"') {
+			while (startValue < line.size() && (line[startValue] == ' ' || line[startValue] == '\t' || line[startValue] == '\n' || line[startValue] == '"')) {
 				if (line[startValue] == '"') {
 					startValue++;
 					quoted = true;
@@ -36,7 +41,12 @@ StyleMap::StyleMap() {
 				}
 				value = value.substr(0, i);
 			}
-			map[key] = value;
+			if (value == "") {
+				header = key;
+			}
+			else {
+				map[header].set(key, value);
+			}
 		}
 	}
 	else {
@@ -45,12 +55,23 @@ StyleMap::StyleMap() {
 	}
 }
 
-StyleNode StyleMap::operator[](std::string key) {
+MapWrapper StyleMap::operator[](std::string key) const {
 	if (map.find(key) != map.end()) {
 		return map.at(key);
 	}
 	else {
+		postMessage(MESSAGE_TYPE::M_WARNING, "Header \"" + key + "\" was not found in the style map.");
+		return MapWrapper();
+	}
+}
+
+StyleNode MapWrapper::operator[](std::string key) const {
+	if (map.find(key) != map.end()) {
+		return map.at(key);
+	}
+	else if (initialized){
 		postMessage(MESSAGE_TYPE::M_WARNING, "Key \"" + key + "\" was not found in the style map.");
 		return StyleNode();
 	}
+	return StyleNode();
 }

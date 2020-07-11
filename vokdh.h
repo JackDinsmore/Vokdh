@@ -3,18 +3,20 @@
 #include <d2d1.h>
 #include <fstream>
 #include <ctime>
+#include <filesystem>
 
 #include "d2tools.h"
 #include "view.h"
 #include "message.h"
 #include "style.h"
+#include "text.h"
 
 
 class Logger : Listener, Poster {
 public:
 	Logger() {
 		StyleMap styleMap = styleMap.summon();
-		std::string loggerStyle = (std::string)styleMap["logger-level"];
+		std::string loggerStyle = (std::string)styleMap["logger"]["logger-level"];
 		if (loggerStyle == "errors") {
 			lowerLimit = MESSAGE_TYPE::M_ERROR;
 		}
@@ -87,30 +89,26 @@ public:
 
 public:
 	static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	BOOL create(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle = 0, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT,
+	BOOL createDeviceIndependentResources(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle = 0, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT,
 		int nWidth = CW_USEDEFAULT, int nHeight = CW_USEDEFAULT, HWND hWndParent = 0, HMENU hMenu = 0);
 	HWND window() const { return hwnd; }
 	PCWSTR className() const { return L"Vokdh class"; }
 	LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	void initialize();
 	void update();
 
 public:
 	bool quit = false;
 
 private:
-	void calculateLayout();
-	HRESULT createGraphicsResources();
-	void discardGraphicsResources();
+	HRESULT createDeviceDependentResources();
+	void discardDeviceDependentResources();
 	void paint();
 	void resize();
 
 private:
 	ID2D1Factory* factory;
 	ID2D1HwndRenderTarget* renderTarget;
-	ID2D1SolidColorBrush* brush;
-	D2D1_ELLIPSE ellipse;
 
 	HWND hwnd;
 
@@ -118,5 +116,8 @@ private:
 	TranslationView translationView;
 	View* view = &translationView;
 
-	std::string openFilePath;
+	std::filesystem::path openFilePath;
+
+	TextTree textTree;
+	FileLoader loader;
 };

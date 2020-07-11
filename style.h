@@ -7,7 +7,7 @@
 
 #define STYLE_FILE "style.txt"
 
-class StyleNode {
+class StyleNode : Poster {
 public:
 	StyleNode() : text("") {}
 	StyleNode(std::string text) : text(text) {}
@@ -17,20 +17,59 @@ public:
 		return text;
 	}
 	explicit operator std::wstring() const {
-		return std::wstring(text.begin(), text.end());
+		try {
+			return std::wstring(text.begin(), text.end());
+		}
+		catch (...) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text " + text + " could not be converted to wstring.");
+			return L"";
+		}
 	}
 	explicit operator int() const {
-		return std::stoi(text);
+		try {
+			return std::stoi(text);
+		}
+		catch (...) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text " + text + " could not be converted to int.");
+			return 0;
+		}
 	}
 	explicit operator float() const {
-		return std::stof(text);
+		try {
+			return std::stof(text);
+		}
+		catch (...) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text " + text + " could not be converted to int.");
+			return 0;
+		}
 	}
 	explicit operator double() const {
-		return std::stod(text);
+		try {
+			return std::stod(text);
+		}
+		catch (...) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text " + text + " could not be converted to int.");
+			return 0;
+		}
 	}
 
 private:
 	std::string text;
+};
+
+class MapWrapper : Poster {
+	friend class StyleMap;
+public:
+	MapWrapper() : initialized(false) {}
+	StyleNode operator[](std::string key) const;
+
+protected:
+	MapWrapper(std::map<std::string, StyleNode>&& map) : map(map), initialized(true) {}
+	void set(std::string key, std::string value) { map[key] = value; }
+
+private:
+	bool initialized;
+	std::map<std::string, StyleNode> map;
 };
 
 class StyleMap : Poster {
@@ -39,12 +78,12 @@ public:
 		static StyleMap instance;
 		return instance;
 	}
-	StyleNode operator[](std::string key);
+	MapWrapper operator[](std::string key) const;
 	void save();
 
 private:
 	StyleMap();
 
 private:
-	std::map<std::string, StyleNode> map;
+	std::map<std::string, MapWrapper> map;
 };

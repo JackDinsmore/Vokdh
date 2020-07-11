@@ -1,7 +1,35 @@
 #include "vokdh.h"
 
-void Vokdh::initialize() {
+#include <stack>
 
+Vokdh::Vokdh(std::string commandLine) : loader(textTree), translationView(textTree) {
+	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
+	if (commandLine != "" && loader.loadFile(commandLine)) {
+
+	}
+	else {
+		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdh/Beowulf.vkd";
+		loader.loadFile(openFilePath);
+	}
+}
+
+BOOL Vokdh::createDeviceIndependentResources(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle, int x, int y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu) {
+	WNDCLASS wc = { 0 };
+
+	wc.lpfnWndProc = Vokdh::windowProc;
+	wc.hInstance = GetModuleHandle(NULL);
+	wc.lpszClassName = className();
+
+	RegisterClass(&wc);
+
+	hwnd = CreateWindowEx(
+		dwExStyle, className(), lpWindowName, dwStyle, x, y,
+		nWidth, nHeight, hWndParent, hMenu, GetModuleHandle(NULL), this
+	);
+
+	view->createDeviceIndependentResources();
+
+	return (hwnd ? TRUE : FALSE);
 }
 
 void Vokdh::update() {
@@ -28,29 +56,6 @@ void Vokdh::update() {
 	InvalidateRect(hwnd, &rect, FALSE);
 
 	logger.update();
-}
-
-Vokdh::Vokdh(std::string commandLine) {
-	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
-}
-
-BOOL Vokdh::create(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle, int x, int y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu) {
-	WNDCLASS wc = { 0 };
-
-	wc.lpfnWndProc = Vokdh::windowProc;
-	wc.hInstance = GetModuleHandle(NULL);
-	wc.lpszClassName = className();
-
-	RegisterClass(&wc);
-
-	hwnd = CreateWindowEx(
-		dwExStyle, className(), lpWindowName, dwStyle, x, y,
-		nWidth, nHeight, hWndParent, hMenu, GetModuleHandle(NULL), this
-	);
-
-	initialize();
-
-	return (hwnd ? TRUE : FALSE);
 }
 
 LRESULT CALLBACK Vokdh::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -83,7 +88,7 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 
 	case WM_DESTROY:
-		discardGraphicsResources();
+		discardDeviceDependentResources();
 		SafeRelease(&factory);
 		PostQuitMessage(0);
 		quit = true;
@@ -100,69 +105,48 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-void Vokdh::calculateLayout() {
-	if (renderTarget != NULL) {
-		D2D1_SIZE_F size = renderTarget->GetSize();
-		const float x = size.width / 2;
-		const float y = size.height / 2;
-		const float radius = min(x, y);
-		ellipse = D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius);
-	}
-}
-
-HRESULT Vokdh::createGraphicsResources() {
+HRESULT Vokdh::createDeviceDependentResources() {
 	HRESULT hr = S_OK;
-	if (renderTarget == NULL) {
+	if (!renderTarget) {
 		RECT rc;
 		GetClientRect(hwnd, &rc);
 
 		D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
 
-		hr = factory->CreateHwndRenderTarget(
-			D2D1::RenderTargetProperties(),
-			D2D1::HwndRenderTargetProperties(hwnd, size),
-			&renderTarget);
-
-		if (SUCCEEDED(hr)) {
-			const D2D1_COLOR_F color = D2D1::ColorF(1.0f, 1.0f, 0);
-			hr = renderTarget->CreateSolidColorBrush(color, &brush);
-
-			if (SUCCEEDED(hr)) {
-				calculateLayout();
-			}
-		}
+		hr = factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
+			D2D1::HwndRenderTargetProperties(hwnd, size), &renderTarget);
 	}
+	view->createDeviceDependentResources(renderTarget);
 	return hr;
 }
 
-void Vokdh::discardGraphicsResources() {
+void Vokdh::discardDeviceDependentResources() {
 	SafeRelease(&renderTarget);
-	SafeRelease(&brush);
+
+	view->discardDeviceDependentResources();
 }
 
 void Vokdh::paint() {
-	HRESULT hr = createGraphicsResources();
+	HRESULT hr = createDeviceDependentResources();
 	if (SUCCEEDED(hr)) {
 		PAINTSTRUCT ps;
 		BeginPaint(hwnd, &ps);
 
 		renderTarget->BeginDraw();
 
-		renderTarget->Clear(D2D1::ColorF(D2D1::ColorF::SkyBlue));
-		renderTarget->FillEllipse(ellipse, brush);
+		renderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
 		view->draw(renderTarget);
 
 		hr = renderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET) {
-			discardGraphicsResources();
+			discardDeviceDependentResources();
 		}
 		EndPaint(hwnd, &ps);
 	}
 }
 
-void Vokdh::resize()
-{
+void Vokdh::resize() {
 	if (renderTarget != NULL) {
 		RECT rc;
 		GetClientRect(hwnd, &rc);
@@ -170,7 +154,6 @@ void Vokdh::resize()
 		D2D1_SIZE_U size = D2D1::SizeU(rc.right, rc.bottom);
 
 		renderTarget->Resize(size);
-		calculateLayout();
 		InvalidateRect(hwnd, NULL, FALSE);
 	}
 
