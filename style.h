@@ -2,7 +2,10 @@
 #include <string>
 #include <map>
 
-#define STYLE_PATH "style.txt"
+#include "message.h"
+#include "constants.h"
+
+#define STYLE_FILE "style.txt"
 
 class StyleNode {
 public:
@@ -30,21 +33,18 @@ private:
 	std::string text;
 };
 
-class Style {
+class StyleMap : Poster {
 public:
-	static Style* summon() {
-		if (!instance) {
-			instance = new Style();
-		}
+	static StyleMap& summon() {
+		static StyleMap instance;
 		return instance;
 	}
 	StyleNode operator[](std::string key);
 	void save();
 
 private:
-	Style();
+	StyleMap();
 
 private:
-	inline static Style* instance = nullptr;
 	std::map<std::string, StyleNode> map;
 };

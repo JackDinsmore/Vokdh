@@ -148,12 +148,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="message.cpp" />
     <ClCompile Include="style.cpp" />
     <ClCompile Include="view.cpp" />
     <ClCompile Include="vokdh.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="constants.h" />
     <ClInclude Include="d2tools.h" />
+    <ClInclude Include="message.h" />
     <ClInclude Include="style.h" />
     <ClInclude Include="view.h" />
     <ClInclude Include="vokdh.h" />

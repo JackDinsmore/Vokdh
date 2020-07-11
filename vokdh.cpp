@@ -1,5 +1,39 @@
 #include "vokdh.h"
 
+void Vokdh::initialize() {
+
+}
+
+void Vokdh::update() {
+	Message msg;
+	for (int i = 0; i < getQueueSize(); i++) {
+		peekMessage(&msg, i);
+		switch (msg.type) {
+		case MESSAGE_TYPE::M_TERMINATE:
+		case MESSAGE_TYPE::M_ERROR:
+			std::wstring wmsg = std::wstring(msg.m.begin(), msg.m.end());
+			MessageBox(NULL, wmsg.c_str(), L"Error", MB_ICONERROR | MB_OK);
+			if (msg.type == MESSAGE_TYPE::M_ERROR) {
+				break;
+			}
+
+			quit = true;
+			PostQuitMessage(0);
+			break;
+		}
+	}
+
+	RECT rect;
+	GetClientRect(hwnd, &rect);
+	InvalidateRect(hwnd, &rect, FALSE);
+
+	logger.update();
+}
+
+Vokdh::Vokdh(std::string commandLine) {
+	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
+}
+
 BOOL Vokdh::create(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle, int x, int y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu) {
 	WNDCLASS wc = { 0 };
 
@@ -13,6 +47,8 @@ BOOL Vokdh::create(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle, int x, i
 		dwExStyle, className(), lpWindowName, dwStyle, x, y,
 		nWidth, nHeight, hWndParent, hMenu, GetModuleHandle(NULL), this
 	);
+
+	initialize();
 
 	return (hwnd ? TRUE : FALSE);
 }
@@ -50,6 +86,7 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		discardGraphicsResources();
 		SafeRelease(&factory);
 		PostQuitMessage(0);
+		quit = true;
 		return 0;
 
 	case WM_PAINT:
