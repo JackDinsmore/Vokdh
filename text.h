@@ -26,8 +26,8 @@ public:
 	bool operator==(const TextCounter tc) const { return node == tc.node && line == tc.line; }
 	bool operator!=(const TextCounter tc) const { return node != tc.node || line != tc.line; }
 
-	std::string text() { if (!node) throw std::exception("Invalid TextCounter"); return node->text[line]; }
-	std::string type() { if (!node) throw std::exception("Invalid TextCounter"); return node->type; }
+	std::string& text() { if (!node) throw std::exception("Invalid TextCounter"); return node->text[line]; }
+	std::string& type() { if (!node) throw std::exception("Invalid TextCounter"); return node->type; }
 
 protected:
 	TextCounter(TextNode* node, int line) : node(node), line(line) {}
@@ -53,6 +53,7 @@ public:
 	TextCounter operator[](int line) const;
 	TextCounter first() const;
 	TextCounter last() const;
+	int size() const;
 
 private:
 	void deleteNode(TextNode* n);

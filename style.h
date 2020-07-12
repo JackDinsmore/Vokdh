@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <d2d1.h>
 
 #include "message.h"
 #include "constants.h"
@@ -52,6 +53,7 @@ public:
 			return 0;
 		}
 	}
+	explicit operator D2D1::ColorF() const;
 
 private:
 	std::string text;

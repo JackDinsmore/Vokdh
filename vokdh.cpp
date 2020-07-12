@@ -1,6 +1,10 @@
 #include "vokdh.h"
 
+#pragma comment(lib, "Shcore")
+
 #include <stack>
+#include <shellscalingapi.h>
+#include <windowsx.h>
 
 Vokdh::Vokdh(std::string commandLine) : loader(textTree), translationView(textTree) {
 	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
@@ -13,19 +17,19 @@ Vokdh::Vokdh(std::string commandLine) : loader(textTree), translationView(textTr
 	}
 }
 
-BOOL Vokdh::createDeviceIndependentResources(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle, int x, int y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu) {
+BOOL Vokdh::createDeviceIndependentResources() {
+	SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
 	WNDCLASS wc = { 0 };
 
 	wc.lpfnWndProc = Vokdh::windowProc;
 	wc.hInstance = GetModuleHandle(NULL);
-	wc.lpszClassName = className();
+	wc.lpszClassName = L"Vokdh class";
 
 	RegisterClass(&wc);
 
-	hwnd = CreateWindowEx(
-		dwExStyle, className(), lpWindowName, dwStyle, x, y,
-		nWidth, nHeight, hWndParent, hMenu, GetModuleHandle(NULL), this
-	);
+	hwnd = CreateWindowEx(0, L"Vokdh class", L"Vokdh", 
+		WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, GetModuleHandle(NULL), this);
 
 	view->createDeviceIndependentResources();
 
@@ -87,6 +91,18 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 		return 0;
 
+	case WM_KEYDOWN:
+		handleKeyPress(wParam);
+		return 0;
+
+	case WM_LBUTTONDOWN:
+		handleLeftClick(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+
+	case WM_VSCROLL:
+		handleScroll();
+		return 0;
+
 	case WM_DESTROY:
 		discardDeviceDependentResources();
 		SafeRelease(&factory);
@@ -134,8 +150,6 @@ void Vokdh::paint() {
 
 		renderTarget->BeginDraw();
 
-		renderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
-
 		view->draw(renderTarget);
 
 		hr = renderTarget->EndDraw();
@@ -157,5 +171,59 @@ void Vokdh::resize() {
 		InvalidateRect(hwnd, NULL, FALSE);
 	}
 
-	view->resize();
+	view->stageResize = true;
+}
+
+
+
+void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
+
+}
+
+void Vokdh::handleKeyPress(int key) {
+	if (GetKeyState(VK_CONTROL) & 0x8000) {
+		if (GetKeyState(VK_SHIFT) & 0x8000) {
+			// Control and shift
+			switch (key) {
+			case 'S':
+				// Save as
+				return;
+			}
+			view->handleControlShiftKeyPress(key);
+		}
+		switch (key) {
+		case 'S':
+			// Save
+			return;
+		case 'O':
+			// Open
+			return;
+		case 'N':
+			// New
+			return;
+		case 'D':
+			// Dictionary
+			return;
+		case 'G':
+			// Grammar page
+			return;
+		case 'P':
+			// Preposition page
+			return;
+		case 'W':
+			// Short words page
+			return;
+		case 'T':
+			// Notes
+			return;
+		}
+		view->handleControlKeyPress(key);
+	}
+	else {
+		view->handleKeyPress(key);
+	}
+}
+
+void Vokdh::handleScroll() {
+
 }

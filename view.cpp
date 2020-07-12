@@ -22,10 +22,22 @@ void View::discardDeviceDependentResources() {
 	extraDiscardDeviceDependentResources();
 }
 
+void View::draw(ID2D1HwndRenderTarget* renderTarget) {
+	if (stageResize) {
+		resize(renderTarget->GetSize().width, renderTarget->GetSize().height);
+	}
+	extraDraw(renderTarget);
+}
+
+
+
 
 
 bool TranslationView::extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
 	renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &blackBrush);
+	bgColor = (D2D1::ColorF)styleMap["colors-translation"]["background"];
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["english"], &englishBrush);
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["tobair"], &tobairBrush);
 	return true;
 }
 void TranslationView::extraDiscardDeviceDependentResources() {
@@ -95,7 +107,9 @@ IDWriteTextFormat* TranslationView::getTextFormat(std::string tag) const {
 	return 0;
 }
 
-void TranslationView::draw(ID2D1HwndRenderTarget* renderTarget) const {
+void TranslationView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
+	renderTarget->Clear(bgColor);
+
 	drawOutline(renderTarget);
 
 	int width = renderTarget->GetSize().width;
@@ -110,7 +124,7 @@ void TranslationView::draw(ID2D1HwndRenderTarget* renderTarget) const {
 		std::string text = line.text();
 		std::wstring wtext = std::wstring(text.begin(), text.end());
 		int lineHeight = getLineHeight(line.type());
-		renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), blackBrush);
+		renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), englishBrush);
 		ypos += lineHeight;
 
 		// Tobair
@@ -119,7 +133,7 @@ void TranslationView::draw(ID2D1HwndRenderTarget* renderTarget) const {
 			std::string text = line.text();
 			std::wstring wtext = std::wstring(text.begin(), text.end());
 			int lineHeight = getLineHeight(line.type());
-			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), blackBrush);
+			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), tobairBrush);
 			ypos += lineHeight;
 		}
 		else {
@@ -137,4 +151,199 @@ void TranslationView::draw(ID2D1HwndRenderTarget* renderTarget) const {
 	}
 
 	// Draw translation
+
+	// Draw cursor
+	int screenX, screenY;
+	int lineHeight = getLineHeight(line.type());
+	indexToScreen(cursorPosX, cursorPosY, &screenX, &screenY);
+	screenX += outlinePos;
+	renderTarget->DrawLine({(FLOAT)screenX, (FLOAT)screenY}, { (FLOAT)screenX, (FLOAT)(screenY + lineHeight)}, blackBrush, 3);
+}
+
+void TranslationView::handleControlShiftKeyPress(int key) {
+	switch (key) {
+	case 'A':
+		// Select all text
+		return;
+	}
+}
+
+void TranslationView::handleControlKeyPress(int key) {
+	switch (key) {
+	case 'A':
+		// Select all of type
+		return;
+	}
+}
+
+void TranslationView::handleKeyPress(int key) {
+	if (GetKeyState(VK_SHIFT) & 0x8000) {
+	}
+	switch (key) {
+	case VK_LEFT:
+		if (cursorPosX > 0) {
+			cursorPosX--;
+		}
+		else {
+			if (cursorPosY / 2 > 0) {
+				cursorPosY -= 2;
+				cursorPosX = textTree[cursorPosY].text().size();
+			}
+		}
+		return;
+	case VK_RIGHT:
+		if (cursorPosX < textTree[cursorPosY].text().size()) {
+			cursorPosX++;
+		}
+		else {
+			if (cursorPosY / 2 < textTree.size() / 2 - 1) {
+				cursorPosY += 2;
+				cursorPosX = 0;
+			}
+		}
+		return;
+	case VK_UP:
+		if (cursorPosY / 2 > 0) {
+			int screenX;
+			indexToScreen(cursorPosX, cursorPosY, &screenX, nullptr);
+			cursorPosY -= 2;
+			cursorPosX = getIndexFromLine(cursorPosY, screenX);
+		}
+		return;
+	case VK_DOWN:
+		if (cursorPosY / 2 < textTree.size() / 2 - 1) {
+			int screenX;
+			indexToScreen(cursorPosX, cursorPosY, &screenX, nullptr);
+			cursorPosY += 2;
+			cursorPosX = getIndexFromLine(cursorPosY, screenX);
+		}
+		return;
+	}
+	if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90)) {
+		std::string letter = std::string(1, key);
+		if (GetKeyState(VK_SHIFT) & 0x8000) {
+			if (key == 49) { letter = "!"; }
+			if (key == 50) { letter = "@"; }
+			if (key == 51) { letter = "#"; }
+			if (key == 52) { letter = "$"; }
+			if (key == 53) { letter = "%"; }
+			if (key == 54) { letter = "^"; }
+			if (key == 55) { letter = "&"; }
+			if (key == 56) { letter = "*"; }
+			if (key == 57) { letter = "("; }
+			if (key == 48) { letter = ")"; }
+		}
+		else {
+			if (65 <= key && key <= 90) {
+				letter = std::string(1, key + 32);
+			}
+		}
+		textTree[cursorPosY].text() = textTree[cursorPosY].text().substr(0, cursorPosX) + letter + textTree[cursorPosY].text().substr(cursorPosX);
+		cursorPosX++;
+		return;
+	}
+}
+
+void TranslationView::indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const {
+	TextCounter line = textTree[indexY];
+	std::string text = line.text();
+
+	if (screenY) {
+		TextCounter count = textTree[int(scrollAmount)];
+		int ypos = -int((scrollAmount - int(scrollAmount)) * getLineHeight(line.type()));
+		while (count != line) {
+			// English
+			int lineHeight = getLineHeight(count.type());
+			ypos += lineHeight;
+			count++;
+
+			if (count == line) break;
+
+			// Tobair
+			lineHeight = getLineHeight(count.type());
+			ypos += lineHeight;
+			count++;
+
+			// Space
+			ypos += lineHeight;
+		}
+
+		*screenY = ypos;
+	}
+
+
+	if (screenX) {
+		std::wstring wtext;
+		if (indexX != 0 && text[indexX - 1] == ' ') {
+			wtext = std::wstring(text.begin(), text.end()).substr(0, indexX - 1) + L"_";
+		}
+		else {
+			wtext = std::wstring(text.begin(), text.end()).substr(0, indexX);
+		}
+		IDWriteTextLayout* layout;
+		DWRITE_TEXT_METRICS metrics;
+		writeFactory->CreateTextLayout(wtext.c_str(), wtext.size(), getTextFormat(line.type()), screenWidth, screenHeight, &layout);
+		layout->GetMetrics(&metrics);
+
+		*screenX = metrics.width;
+
+		SafeRelease(&layout);
+	}
+
+}
+void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* indexY) const {
+
+}
+
+int TranslationView::getIndexFromLine(int cursorPosY, int screenX) const {
+	TextCounter line = textTree[cursorPosY];
+	std::wstring wtext = std::wstring(line.text().begin(), line.text().end());
+	IDWriteTextFormat* textFormat = getTextFormat(line.type());
+	IDWriteTextLayout* layout;
+	DWRITE_TEXT_METRICS metrics;
+
+	// Check if cursor is even over line
+	writeFactory->CreateTextLayout(wtext.c_str(), wtext.size(), textFormat, screenWidth, screenHeight, &layout);
+	layout->GetMetrics(&metrics);
+	if (metrics.width < screenX) {
+		return wtext.size();
+	}
+	SafeRelease(&layout);
+
+	// Binary search.
+	int left = 0;
+	int right = wtext.size();
+	while (right - left > 1) {
+		int middle = (right + left) / 2;
+		writeFactory->CreateTextLayout(wtext.c_str(), middle, textFormat, screenWidth, screenHeight, &layout);
+		layout->GetMetrics(&metrics);
+		if (metrics.width < screenX) {
+			left = middle;
+		}
+		else {
+			right = middle;
+		}
+		SafeRelease(&layout);
+	}
+
+	// Make final choice
+	if (right - left == 1) {
+		writeFactory->CreateTextLayout(wtext.c_str(), right, textFormat, screenWidth, screenHeight, &layout);
+		layout->GetMetrics(&metrics);
+		int width1 = metrics.width;
+		SafeRelease(&layout);
+
+		writeFactory->CreateTextLayout(wtext.c_str(), left, textFormat, screenWidth, screenHeight, &layout);
+		layout->GetMetrics(&metrics);
+		int width2 = metrics.width;
+		SafeRelease(&layout);
+
+		if (abs(width1 - screenX) < abs(width2 - screenX)) {
+			return right;
+		}
+		else {
+			return left;
+		}
+	}
+	return left;
 }

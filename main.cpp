@@ -14,7 +14,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR pCmdLine, int nCmdShow) 
 
 	Vokdh vokdh = Vokdh(std::string(pCmdLine));
 
-	if (!vokdh.createDeviceIndependentResources(L"Circle", WS_OVERLAPPEDWINDOW)) { return 0; }
+	if (!vokdh.createDeviceIndependentResources()) { return 0; }
 
 	ShowWindow(vokdh.window(), nCmdShow);
 

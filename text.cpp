@@ -13,7 +13,7 @@ TextCounter TextCounter::operator+(int amount) const {
 		if (!returnNode) {
 			throw std::exception("Index out of bounds.");
 		}
-		linesLeft = returnNode->text.size();
+		linesLeft = returnNode->text.size() - 1;
 	}
 	return TextCounter(returnNode, amount);
 }
@@ -171,6 +171,14 @@ TextCounter TextTree::last() const {
 		right = right->children.back();
 	}
 	return TextCounter(right, right->text.size() - 1);
+}
+
+int TextTree::size() const {
+	int sum = 0;
+	for (TextNode* n = root; n != nullptr; n = TextCounter::getNextNode(n)) {
+		sum += n->text.size();
+	}
+	return sum;
 }
 
 

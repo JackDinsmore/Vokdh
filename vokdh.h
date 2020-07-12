@@ -89,10 +89,8 @@ public:
 
 public:
 	static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	BOOL createDeviceIndependentResources(PCWSTR lpWindowName, DWORD dwStyle, DWORD dwExStyle = 0, int x = CW_USEDEFAULT, int y = CW_USEDEFAULT,
-		int nWidth = CW_USEDEFAULT, int nHeight = CW_USEDEFAULT, HWND hWndParent = 0, HMENU hMenu = 0);
+	BOOL createDeviceIndependentResources();
 	HWND window() const { return hwnd; }
-	PCWSTR className() const { return L"Vokdh class"; }
 	LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void update();
@@ -105,6 +103,9 @@ private:
 	void discardDeviceDependentResources();
 	void paint();
 	void resize();
+	void handleKeyPress(int key);
+	void handleScroll();
+	void handleLeftClick(int keydown, int posx, int posy);
 
 private:
 	ID2D1Factory* factory;
