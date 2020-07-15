@@ -89,7 +89,7 @@ public:
 
 public:
 	static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	BOOL createDeviceIndependentResources();
+	BOOL createDeviceIndependentResources(HINSTANCE hInstance);
 	HWND window() const { return hwnd; }
 	LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -104,8 +104,11 @@ private:
 	void paint();
 	void resize();
 	void handleKeyPress(int key);
-	void handleScroll();
 	void handleLeftClick(int keydown, int posx, int posy);
+	void toggleFullscreen();
+	void saveAs();
+	void open();
+	void newFile();
 
 private:
 	ID2D1Factory* factory;

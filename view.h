@@ -12,10 +12,13 @@
 #include "style.h"
 #include "d2tools.h"
 
+#define MAX_HEIGHT 2000
+#define TEXT_BUFFER 5
+
 
 class View : protected Poster {
 public:
-	View(TextTree& textTree) : textTree(textTree) {}
+	View(TextTree& textTree) : textTree(textTree) { open(); }
 
 public:
 	virtual void draw(ID2D1HwndRenderTarget* renderTarget);
@@ -27,6 +30,9 @@ public:
 	virtual void handleControlShiftKeyPress(int key) {}
 	virtual void handleControlKeyPress(int key) {}
 	virtual void handleKeyPress(int key) {}
+	void handleLeftClick(int posx, int posy) { extraHandleLeftClick(posx, posy); }
+	void handleScroll(int scrollTimes);
+	void open();
 
 public:
 	bool stageResize = true;
@@ -39,15 +45,20 @@ protected:
 	virtual bool extraCreateDeviceIndependentResources() { return true; }
 	virtual bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) { return true; }
 	virtual void extraDiscardDeviceDependentResources() {}
+	virtual void extraHandleLeftClick(int posx, int posy) {}
 
 protected:
 	float scrollAmount = 0;
-	int outlinePos = 3;
+	int outlinePos = 200;
 	TextTree& textTree;
 	int screenWidth;
 	int screenHeight;
 
+	ID2D1SolidColorBrush* darkBGBrush;
+
 	IDWriteFactory* writeFactory;
+
+	StyleMap styleMap = styleMap.summon();
 };
 
 
@@ -66,6 +77,7 @@ protected:
 	bool extraCreateDeviceIndependentResources() override;
 	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
 	void extraDiscardDeviceDependentResources() override;
+	void extraHandleLeftClick(int posx, int posy) override;
 
 private:
 	int getLineHeight(std::string tag) const;
@@ -85,13 +97,11 @@ private:
 	IDWriteTextFormat* h3EnglishTextFormat;
 	IDWriteTextFormat* pEnglishTextFormat;
 
-	ID2D1SolidColorBrush* blackBrush;
+	ID2D1SolidColorBrush* foreBrush;
 	ID2D1SolidColorBrush* englishBrush;
 	ID2D1SolidColorBrush* tobairBrush;
 	D2D1::ColorF bgColor = D2D1::ColorF(D2D1::ColorF::Black);
 
 	int cursorPosX = 0;
 	int cursorPosY = 0;
-
-	StyleMap styleMap = styleMap.summon();
 };

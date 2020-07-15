@@ -67,7 +67,7 @@ public:
 
 protected:
 	MapWrapper(std::map<std::string, StyleNode>&& map) : map(map), initialized(true) {}
-	void set(std::string key, std::string value) { map[key] = value; }
+	void set(std::string key, std::string value) { map[key] = value; initialized = true; }
 
 private:
 	bool initialized;

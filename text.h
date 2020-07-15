@@ -41,8 +41,9 @@ private:
 };
 
 class TextTree {
+	friend class FileLoader;
 public:
-	TextTree() {}
+	TextTree();
 	TextTree(TextNode* root);
 	~TextTree() { deleteNode(root); }
 	TextTree(const TextTree&) = delete;
@@ -58,7 +59,7 @@ public:
 private:
 	void deleteNode(TextNode* n);
 
-private:
+protected:
 	TextNode* root = nullptr;
 };
 
@@ -66,6 +67,16 @@ class FileLoader : Poster {
 public:
 	FileLoader(TextTree& textTree) : textTree(textTree) {}
 	bool loadFile(std::filesystem::path filePath);
+	void save() { saveFile(thisPath); }
+	void saveFile(std::filesystem::path filePath);
+	void newFile();
+	void unload();
+
+private:
+	void writeNode(const TextNode* n, std::ofstream* file);
+
+public:
+	std::filesystem::path thisPath;
 
 private:
 	TextTree& textTree;

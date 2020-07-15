@@ -1,7 +1,9 @@
 #include "view.h"
 
 void View::drawOutline(ID2D1HwndRenderTarget* renderTarget) const {
-
+	int width = renderTarget->GetSize().width;
+	int height = renderTarget->GetSize().height;
+	renderTarget->DrawLine({ (FLOAT)outlinePos, 0 }, { (FLOAT)outlinePos, (FLOAT)height }, darkBGBrush, 2);
 }
 
 bool View::createDeviceIndependentResources() {
@@ -15,10 +17,13 @@ bool View::createDeviceIndependentResources() {
 }
 
 bool View::createDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
+	styleMap = styleMap.summon();
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["dark-background"], &darkBGBrush);
 	return extraCreateDeviceDependentResources(renderTarget);
 }
 
 void View::discardDeviceDependentResources() {
+	SafeRelease(&darkBGBrush);
 	extraDiscardDeviceDependentResources();
 }
 
@@ -29,19 +34,33 @@ void View::draw(ID2D1HwndRenderTarget* renderTarget) {
 	extraDraw(renderTarget);
 }
 
+void View::handleScroll(int scrollTimes) {
+	scrollAmount -= scrollTimes;
+	scrollAmount = max(scrollAmount, 0);
+
+	scrollAmount = min(scrollAmount, textTree.size() - 1);
+}
+
+void View::open() {
+	scrollAmount = 0;
+}
 
 
 
 
 bool TranslationView::extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
-	renderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &blackBrush);
+	styleMap = styleMap.summon();
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["foreground"], &foreBrush);
 	bgColor = (D2D1::ColorF)styleMap["colors-translation"]["background"];
 	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["english"], &englishBrush);
 	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["tobair"], &tobairBrush);
 	return true;
 }
+
 void TranslationView::extraDiscardDeviceDependentResources() {
-	SafeRelease(&blackBrush);
+	SafeRelease(&foreBrush);
+	SafeRelease(&englishBrush);
+	SafeRelease(&tobairBrush);
 }
 
 bool TranslationView::extraCreateDeviceIndependentResources() {
@@ -116,48 +135,71 @@ void TranslationView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 	int height = renderTarget->GetSize().height;
 
 	// Draw English
-	TextCounter line = textTree[int(scrollAmount)];
+	TextCounter line = textTree[max(int(scrollAmount), 0)];
+	int parity = max(int(scrollAmount), 0) % 2;
 
-	int ypos = -int((scrollAmount - int(scrollAmount)) * getLineHeight(line.type()));
+	int linesTraversed = 0;
+	int ypos = -int((scrollAmount - max(int(scrollAmount), 0)) * getLineHeight(line.type())) + TEXT_BUFFER;
 	while (ypos < height) {
+		linesTraversed++;
 		// English
 		std::string text = line.text();
 		std::wstring wtext = std::wstring(text.begin(), text.end());
 		int lineHeight = getLineHeight(line.type());
-		renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), englishBrush);
+		renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos + TEXT_BUFFER, ypos, width, ypos + lineHeight), (parity ? tobairBrush : englishBrush));
 		ypos += lineHeight;
-
-		// Tobair
 		if (line != textTree.last()) {
 			line++;
-			std::string text = line.text();
-			std::wstring wtext = std::wstring(text.begin(), text.end());
-			int lineHeight = getLineHeight(line.type());
-			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos, ypos, width, ypos + lineHeight), tobairBrush);
-			ypos += lineHeight;
 		}
 		else {
 			break;
 		}
 
 		// Space
+		if (parity) {
+			if (line != textTree.last()) {
+				ypos += lineHeight;
+			}
+			else {
+				break;
+			}
+		}
+
+		// Tobair
+		text = line.text();
+		wtext = std::wstring(text.begin(), text.end());
+		lineHeight = getLineHeight(line.type());
+		renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat(line.type()), D2D1::RectF(outlinePos + TEXT_BUFFER, ypos, width, ypos + lineHeight), (parity ? englishBrush : tobairBrush));
+		ypos += lineHeight;
 		if (line != textTree.last()) {
-			ypos += lineHeight;
 			line++;
 		}
 		else {
 			break;
 		}
+
+		// Space
+		if (!parity) {
+			if (line != textTree.last()) {
+				ypos += lineHeight;
+			}
+			else {
+				break;
+			}
+		}
 	}
 
-	// Draw translation
-
 	// Draw cursor
-	int screenX, screenY;
-	int lineHeight = getLineHeight(line.type());
+	int screenX = -100, screenY = -100;
+	int lineHeight = getLineHeight(textTree[cursorPosY].type());
 	indexToScreen(cursorPosX, cursorPosY, &screenX, &screenY);
 	screenX += outlinePos;
-	renderTarget->DrawLine({(FLOAT)screenX, (FLOAT)screenY}, { (FLOAT)screenX, (FLOAT)(screenY + lineHeight)}, blackBrush, 3);
+	renderTarget->DrawLine({ (FLOAT)screenX + TEXT_BUFFER, (FLOAT)screenY }, { (FLOAT)screenX + TEXT_BUFFER, (FLOAT)(screenY + lineHeight) }, foreBrush, 2);
+	
+	// Draw scrollbar
+	FLOAT scrollTop = scrollAmount / textTree.size() * height;
+	FLOAT scrollWidth = float(linesTraversed) / textTree.size() * height;
+	renderTarget->FillRectangle({FLOAT(width - 10), scrollTop, FLOAT(width), scrollTop + scrollWidth }, darkBGBrush);
 }
 
 void TranslationView::handleControlShiftKeyPress(int key) {
@@ -247,28 +289,56 @@ void TranslationView::handleKeyPress(int key) {
 void TranslationView::indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const {
 	TextCounter line = textTree[indexY];
 	std::string text = line.text();
+	int parity = max(int(scrollAmount), 0) % 2;
 
-	if (screenY) {
-		TextCounter count = textTree[int(scrollAmount)];
-		int ypos = -int((scrollAmount - int(scrollAmount)) * getLineHeight(line.type()));
-		while (count != line) {
+	if (screenY && indexY >= scrollAmount) {
+		TextCounter count = textTree[max(0, int(scrollAmount))];
+		int ypos = -int((scrollAmount - max(0, int(scrollAmount))) * getLineHeight(line.type())) + TEXT_BUFFER;
+		while (count != line && ypos < MAX_HEIGHT) {
 			// English
 			int lineHeight = getLineHeight(count.type());
 			ypos += lineHeight;
-			count++;
+			if (count != textTree.last()) {
+				count++;
+			}
+			else {
+				break;
+			}
 
-			if (count == line) break;
+			// Space
+			if (parity) {
+				if (count != textTree.last()) {
+					ypos += lineHeight;
+				}
+				else {
+					break;
+				}
+			}
 
 			// Tobair
 			lineHeight = getLineHeight(count.type());
 			ypos += lineHeight;
-			count++;
+			if (count != textTree.last()) {
+				count++;
+			}
+			else {
+				break;
+			}
 
 			// Space
-			ypos += lineHeight;
+			if (!parity) {
+				if (count != textTree.last()) {
+					ypos += lineHeight;
+				}
+				else {
+					break;
+				}
+			}
 		}
-
-		*screenY = ypos;
+		
+		if (ypos < MAX_HEIGHT) {
+			*screenY = ypos;
+		}
 	}
 
 
@@ -291,8 +361,72 @@ void TranslationView::indexToScreen(int indexX, int indexY, int* screenX, int* s
 	}
 
 }
-void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* indexY) const {
 
+void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* indexY) const {
+	if (indexY && indexX) {
+		TextCounter line = textTree[max(int(scrollAmount), 0)];
+		int parity = max(int(scrollAmount), 0) % 2;
+		int ypos = -int((scrollAmount - max(int(scrollAmount), 0)) * getLineHeight(line.type())) + TEXT_BUFFER;
+		*indexY = max(int(scrollAmount), 0);
+		int diffY = 0;
+
+		while (ypos < screenHeight && ypos < screenY) {
+
+			diffY = ypos - screenY;
+			int lineHeight = getLineHeight(line.type());
+			if (line != textTree.last()) {
+				ypos += lineHeight;
+				(*indexY)++;
+				line++;
+			}
+			else {
+				break;
+			}
+
+			// Space
+			if (parity) {
+				if (line != textTree.last()) {
+					ypos += lineHeight;
+				}
+				else {
+					break;
+				}
+			}
+
+			// Tobair
+			diffY = ypos - screenY;
+			lineHeight = getLineHeight(line.type());
+
+			if (line != textTree.last()) {
+				ypos += lineHeight;
+				(*indexY)++;
+				line++;
+			}
+			else {
+				break;
+			}
+
+			// Space
+			if (!parity) {
+				if (line != textTree.last()) {
+					ypos += lineHeight;
+				}
+				else {
+					break;
+				}
+			}
+		}
+
+		int diffYNow = ypos - screenY;
+		if (abs(diffY) < abs(diffYNow)) {
+			ypos = diffY + screenY;
+			line--;
+			(*indexY)--;
+		}
+
+		// Do some stuff
+		*indexX = getIndexFromLine(*indexY, screenX);
+	}
 }
 
 int TranslationView::getIndexFromLine(int cursorPosY, int screenX) const {
@@ -346,4 +480,8 @@ int TranslationView::getIndexFromLine(int cursorPosY, int screenX) const {
 		}
 	}
 	return left;
+}
+
+void TranslationView::extraHandleLeftClick(int posx, int posy) {
+	screenToIndex(posx - TEXT_BUFFER - outlinePos, posy - TEXT_BUFFER, &cursorPosX, &cursorPosY);
 }

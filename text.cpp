@@ -212,6 +212,7 @@ void TextTree::deleteNode(TextNode* n) {\
 }
 
 bool FileLoader::loadFile(const std::filesystem::path filePath) {
+	thisPath = filePath;
 	std::ifstream sourceFile;
 	sourceFile.open(filePath);
 
@@ -306,4 +307,50 @@ bool FileLoader::loadFile(const std::filesystem::path filePath) {
 		return false;
 	}
 	return true;
+}
+
+void FileLoader::saveFile(const std::filesystem::path filePath) {
+	std::ofstream file;
+	file.open(filePath);
+	writeNode(textTree.root, &file);
+	file.close();
+}
+
+void FileLoader::writeNode(const TextNode* n, std::ofstream* file) {
+	// Write header 
+	(*file) << '#' + n->type << std::endl;
+
+	// Write lines
+	for (int i = 0; i < n->text.size(); i++) {
+		if (n->text[i][0] == '#' || n->text[i][0] == '$') {
+			(*file) << '\\';
+		}
+		(*file) << n->text[i] << std::endl;
+	}
+
+	// Write children
+	for (TextNode* child : n->children) {
+		writeNode(child, file);
+	}
+
+	// Write footer 
+	(*file) << '$' << std::endl;
+}
+
+void FileLoader::newFile() {
+	thisPath = "";
+	textTree = std::move(TextTree());
+}
+
+void FileLoader::unload() {
+	thisPath = "";
+	textTree.~TextTree();
+}
+
+TextTree::TextTree() {
+	root = new TextNode;
+	root->type = "document";
+	root->children.push_back(new TextNode);
+	root->children[0]->type = "p";
+	root->children[0]->text.push_back("\n");
 }

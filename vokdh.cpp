@@ -17,7 +17,7 @@ Vokdh::Vokdh(std::string commandLine) : loader(textTree), translationView(textTr
 	}
 }
 
-BOOL Vokdh::createDeviceIndependentResources() {
+BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
 	WNDCLASS wc = { 0 };
 
@@ -27,9 +27,11 @@ BOOL Vokdh::createDeviceIndependentResources() {
 
 	RegisterClass(&wc);
 
-	hwnd = CreateWindowEx(0, L"Vokdh class", L"Vokdh", 
-		WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, GetModuleHandle(NULL), this);
+	/*hwnd = CreateWindowEx(0, L"Vokdh class", L"Vokdh",
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, GetModuleHandle(NULL), this);*/
+	hwnd = CreateWindow(L"Vokdh class", L"Vokdh", WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, this);
 
 	view->createDeviceIndependentResources();
 
@@ -99,8 +101,8 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		handleLeftClick(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
 
-	case WM_VSCROLL:
-		handleScroll();
+	case WM_MOUSEWHEEL:
+		view->handleScroll(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 		return 0;
 
 	case WM_DESTROY:
@@ -174,10 +176,8 @@ void Vokdh::resize() {
 	view->stageResize = true;
 }
 
-
-
 void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
-
+	view->handleLeftClick(posx, posy);
 }
 
 void Vokdh::handleKeyPress(int key) {
@@ -186,20 +186,25 @@ void Vokdh::handleKeyPress(int key) {
 			// Control and shift
 			switch (key) {
 			case 'S':
-				// Save as
+				saveAs();
 				return;
 			}
 			view->handleControlShiftKeyPress(key);
 		}
 		switch (key) {
 		case 'S':
-			// Save
+			if (!loader.thisPath.empty()) {
+				loader.save();
+			}
+			else {
+				saveAs();
+			}
 			return;
 		case 'O':
-			// Open
+			open();
 			return;
 		case 'N':
-			// New
+			newFile();
 			return;
 		case 'D':
 			// Dictionary
@@ -219,11 +224,89 @@ void Vokdh::handleKeyPress(int key) {
 		}
 		view->handleControlKeyPress(key);
 	}
-	else {
+	switch (key) {
+	case VK_F11:
+		toggleFullscreen();
+		return;
+	default:
 		view->handleKeyPress(key);
+		return;
 	}
 }
 
-void Vokdh::handleScroll() {
+void Vokdh::toggleFullscreen() {
+	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+	WINDOWPLACEMENT placement;
+	if (dwStyle & WS_OVERLAPPEDWINDOW) {
+		MONITORINFO mi = { sizeof(mi) };
+		if (GetWindowPlacement(hwnd, &placement) &&
+			GetMonitorInfo(MonitorFromWindow(hwnd,
+				MONITOR_DEFAULTTOPRIMARY), &mi)) {
+			SetWindowLong(hwnd, GWL_STYLE,
+				dwStyle & ~WS_OVERLAPPEDWINDOW);
+			SetWindowPos(hwnd, HWND_TOP,
+				mi.rcMonitor.left, mi.rcMonitor.top,
+				mi.rcMonitor.right - mi.rcMonitor.left,
+				mi.rcMonitor.bottom - mi.rcMonitor.top,
+				SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+		}
+	}
+	else {
+		SetWindowLong(hwnd, GWL_STYLE,
+			dwStyle | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(hwnd, &placement);
+		SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+			SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+	}
 
+	resize();
+}
+
+void Vokdh::saveAs() {
+	char filename[MAX_PATH];
+
+	OPENFILENAMEA parameters;
+	ZeroMemory(&filename, sizeof(filename));
+	ZeroMemory(&parameters, sizeof(parameters));
+	parameters.lStructSize = sizeof(parameters);
+	parameters.hwndOwner = hwnd;  // If you have a window to center over, put its HANDLE here
+	parameters.lpstrFilter = "*.vkd\0Any File\0*.*\0";
+	parameters.lpstrFile = filename;
+	parameters.nMaxFile = MAX_PATH;
+	parameters.lpstrTitle = "Save as";
+	parameters.Flags = OFN_DONTADDTORECENT;
+
+	if (GetOpenFileNameA(&parameters)) {
+		loader.saveFile(std::string(filename));
+	}
+}
+
+void Vokdh::open() {
+	/// Check if the current file has been saved.
+
+	char filename[MAX_PATH];
+
+	OPENFILENAMEA parameters;
+	ZeroMemory(&filename, sizeof(filename));
+	ZeroMemory(&parameters, sizeof(parameters));
+	parameters.lStructSize = sizeof(parameters);
+	parameters.hwndOwner = hwnd;  // If you have a window to center over, put its HANDLE here
+	parameters.lpstrFilter = "*.vkd\0Any File\0*.*\0";
+	parameters.lpstrFile = filename;
+	parameters.nMaxFile = MAX_PATH;
+	parameters.lpstrTitle = "Open";
+	parameters.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST;
+
+	if (GetOpenFileNameA(&parameters)) {
+		loader.unload();
+		loader.loadFile(std::string(filename));
+	}
+}
+
+void Vokdh::newFile() {
+	/// Check if current file has been saved.
+	loader.unload();
+	loader.newFile();
+	view->open();
 }
