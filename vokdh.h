@@ -115,9 +115,11 @@ private:
 	ID2D1HwndRenderTarget* renderTarget;
 
 	HWND hwnd;
+	UINT dpi;
 
 	Logger logger;
 	TranslationView translationView;
+	HelpView helpView;
 	View* view = &translationView;
 
 	std::filesystem::path openFilePath;

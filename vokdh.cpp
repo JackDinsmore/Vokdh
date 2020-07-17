@@ -24,6 +24,7 @@ BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	wc.lpfnWndProc = Vokdh::windowProc;
 	wc.hInstance = GetModuleHandle(NULL);
 	wc.lpszClassName = L"Vokdh class";
+	dpi = GetDpiForSystem();
 
 	RegisterClass(&wc);
 
@@ -98,11 +99,21 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 
 	case WM_LBUTTONDOWN:
-		handleLeftClick(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		handleLeftClick(wParam, GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		return 0;
+
+	case WM_LBUTTONUP:
+		view->handleLeftUnclick(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		return 0;
 
 	case WM_MOUSEWHEEL:
 		view->handleScroll(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+		return 0;
+
+	case WM_MOUSEMOVE:
+		if (wParam & MK_LBUTTON) {
+			view->handleDrag(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		}
 		return 0;
 
 	case WM_DESTROY:
@@ -189,7 +200,7 @@ void Vokdh::handleKeyPress(int key) {
 				saveAs();
 				return;
 			}
-			view->handleControlShiftKeyPress(key);
+			return view->handleControlShiftKeyPress(key);
 		}
 		switch (key) {
 		case 'S':
@@ -221,8 +232,11 @@ void Vokdh::handleKeyPress(int key) {
 		case 'T':
 			// Notes
 			return;
+		case 'H':
+			view = &helpView;
+			return;
 		}
-		view->handleControlKeyPress(key);
+		return view->handleControlKeyPress(key);
 	}
 	switch (key) {
 	case VK_F11:

@@ -5,11 +5,11 @@
 
 
 TextCounter TextCounter::operator+(int amount) const {
-	TextNode* returnNode = node;
-	int linesLeft = node->text.size() - line - 1;
+	TextNode* returnNode = n;
+	int linesLeft = n->text.size() - line - 1;
 	while (amount > linesLeft) {
-		amount -= linesLeft + 1;// One is added because one is required to get the next node.
-		returnNode = getNextNode(returnNode);
+		amount -= linesLeft + 1;// One is added because one is required to get the next n.
+		returnNode = NodeCounter::getNextNode(returnNode);
 		if (!returnNode) {
 			throw std::exception("Index out of bounds.");
 		}
@@ -18,24 +18,25 @@ TextCounter TextCounter::operator+(int amount) const {
 	return TextCounter(returnNode, amount);
 }
 void TextCounter::operator+=(int amount) {
-	int linesLeft = node->text.size() - line - 1;
+	int linesLeft = n->text.size() - line - 1;
 	while (amount > linesLeft) {
-		amount -= linesLeft + 1;// One is added because one is required to get the next node.
-		node = getNextNode(node);
-		if (!node) {
+		amount -= linesLeft + 1;// One is added because one is required to get the next n.
+		n = NodeCounter::getNextNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
-		linesLeft = node->text.size();
+		linesLeft = n->text.size();
+		line = 0;
 	}
-	line = amount;
+	line += amount;
 }
 TextCounter& TextCounter::operator++() {
-	if (line + 1 < node->text.size()) {
+	if (line + 1 < n->text.size()) {
 		line++;
 	}
 	else {
-		node = getNextNode(node);
-		if (!node) {
+		n = NodeCounter::getNextNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
 		line = 0;
@@ -43,12 +44,12 @@ TextCounter& TextCounter::operator++() {
 	return *this;
 }
 TextCounter TextCounter::operator++(int) {
-	if (line + 1 < node->text.size()) {
+	if (line + 1 < n->text.size()) {
 		line++;
 	}
 	else {
-		node = getNextNode(node);
-		if (!node) {
+		n = NodeCounter::getNextNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
 		line = 0;
@@ -57,11 +58,11 @@ TextCounter TextCounter::operator++(int) {
 }
 
 TextCounter TextCounter::operator-(int amount) const {
-	TextNode* returnNode = node;
+	TextNode* returnNode = n;
 	int linesLeft = line;
 	while (amount > linesLeft) {
-		amount -= linesLeft + 1;// One is added because one is required to get the next node.
-		returnNode = getLastNode(returnNode);
+		amount -= linesLeft + 1;// One is added because one is required to get the next n.
+		returnNode = NodeCounter::getLastNode(returnNode);
 		if (!returnNode) {
 			throw std::exception("Index out of bounds.");
 		}
@@ -72,25 +73,25 @@ TextCounter TextCounter::operator-(int amount) const {
 void TextCounter::operator-=(int amount) {
 	int linesLeft = line;
 	while (amount > linesLeft) {
-		amount -= linesLeft + 1;// One is added because one is required to get the next node.
-		node = getLastNode(node);
-		if (!node) {
+		amount -= linesLeft + 1;// One is added because one is required to get the next n.
+		n = NodeCounter::getLastNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
-		linesLeft = node->text.size();
+		linesLeft = n->text.size();
 	}
-	line = node->text.size() - amount - 1;
+	line = n->text.size() - amount - 1;
 }
 TextCounter& TextCounter::operator--() {
 	if (line > 0) {
 		line--;
 	}
 	else {
-		node = getLastNode(node);
-		if (!node) {
+		n = NodeCounter::getLastNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
-		line = node->text.size() - 1;
+		line = n->text.size() - 1;
 	}
 	return *this;
 }
@@ -99,16 +100,33 @@ TextCounter TextCounter::operator--(int) {
 		line--;
 	}
 	else {
-		node = getLastNode(node);
-		if (!node) {
+		n = NodeCounter::getLastNode(n);
+		if (!n) {
 			throw std::exception("Index out of bounds.");
 		}
-		line = node->text.size() - 1;
+		line = n->text.size() - 1;
 	}
 	return *this;
 }
+bool TextCounter::isLast() const {
+	if (line == n->text.size() - 1) {
+		if (!NodeCounter::getNextNode(n)) {
+			return true;
+		}
+	}
+	return false;
+}
 
-TextNode* TextCounter::getNextNode(TextNode* node) {
+TextCounter TextTree::first() const {
+	if (!root) {
+		return TextCounter(nullptr, 0);
+	}
+	TextNode* node = NodeCounter::getNextNode(root);
+	return TextCounter(node, 0);
+}
+
+
+TextNode* NodeCounter::getNextNode(TextNode* node) {
 	if (!node) { return nullptr; }
 	if (!node->children.empty()) {
 		return node->children[0];
@@ -137,11 +155,11 @@ TextNode* TextCounter::getNextNode(TextNode* node) {
 	return now;
 }
 
-TextNode* TextCounter::getLastNode(TextNode* node) {
+TextNode* NodeCounter::getLastNode(TextNode* node) {
 	if (!node) { return nullptr; }
 	if (!node->parent) { return nullptr; }
 	TextNode* parent = node->parent;
-	if(std::find(parent->children.begin(), parent->children.end(), node) == parent->children.begin()) {
+	if (std::find(parent->children.begin(), parent->children.end(), node) == parent->children.begin()) {
 		// I am the leftmost node
 		return parent;
 	}
@@ -152,33 +170,6 @@ TextNode* TextCounter::getLastNode(TextNode* node) {
 		now = now->children.back();
 	}
 	return now;
-}
-
-TextCounter TextTree::first() const {
-	if (!root) {
-		return TextCounter(nullptr, 0);
-	}
-	TextNode* node = TextCounter::getNextNode(root);
-	return TextCounter(node, 0);
-}
-
-TextCounter TextTree::last() const {
-	if (!root) {
-		return TextCounter(nullptr, 0);
-	}
-	TextNode* right = root;
-	while (!right->children.empty()) {
-		right = right->children.back();
-	}
-	return TextCounter(right, right->text.size() - 1);
-}
-
-int TextTree::size() const {
-	int sum = 0;
-	for (TextNode* n = root; n != nullptr; n = TextCounter::getNextNode(n)) {
-		sum += n->text.size();
-	}
-	return sum;
 }
 
 
@@ -210,6 +201,47 @@ void TextTree::deleteNode(TextNode* n) {\
 	}
 	delete n;
 }
+
+void TextTree::cutNode(int begin, int end) {
+	// Make a new node between begin and end.
+}
+
+void TextTree::insertLine(int index) {
+	TextCounter line = operator[](index);
+	line.n->text.insert(line.line + line.n->text.begin() + 1, "");
+	line.n->text.insert(line.line + line.n->text.begin() + 1, "");
+}
+
+void TextTree::remove(int index) {
+	TextCounter line = operator[](index);
+	line.n->text.erase(line.line + line.n->text.begin());
+	line = operator[](index);
+	line.n->text.erase(line.line + line.n->text.begin());
+	if (line.n->text.size() == 0) {
+		TextNode* parent = line.n->parent;
+		if (parent) {
+			parent->children.erase(std::find(parent->children.begin(), parent->children.end(), line.n));
+			for (TextNode* child : line.n->children) {
+				parent->children.push_back(child);
+				child->parent = parent;
+			}
+			delete line.n;
+		}
+		else {
+			int debug = 0;
+		}
+	}
+}
+
+int TextTree::size() const {
+	int sum = 0;
+	for (TextNode* n = root; n != nullptr; n = NodeCounter::getNextNode(n)) {
+		sum += n->text.size();
+	}
+	return sum;
+}
+
+
 
 bool FileLoader::loadFile(const std::filesystem::path filePath) {
 	thisPath = filePath;
