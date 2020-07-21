@@ -1,6 +1,8 @@
 #include "style.h"
 #include <fstream>
 
+#pragma warning(disable:4244)
+
 
 StyleNode::operator D2D1::ColorF() const {
 	int begin = std::find(text.begin(), text.end(), '{') - text.begin();

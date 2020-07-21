@@ -1,0 +1,19 @@
+colors-translation:
+	background:{0.1, 0.1, 0.1}
+	dark-background:{0, 0, 0}
+	foreground:{0.9, 0.9, 0.9}
+	english:{0.8, 0.8, 0.8}
+	tobair:{0.9, 0.45, 0}
+	selection:{1.0, 0.7, 0.4}
+fonts:
+	english:"Calibri"
+	tobair:"None"
+	h1-size: 32
+	h2-size: 24
+	h3-size: 18
+	p-size: 12
+logger:
+	logger-level:"info"
+keys:
+	help:"h"
+	save:"ctrl+s"

@@ -15,7 +15,18 @@
 #define MAX_HEIGHT 2000
 #define TEXT_BUFFER 5
 #define OUTLINE_INDENT 30
+#define SUB_MENU_LR_BUFFER 200
+#define SUB_MENU_TB_BUFFER 120
 
+
+enum class VIEW_TYPE {
+	TRANSLATION,
+	HELP,
+};
+
+
+class TranslationView;
+class HelpView;
 
 class View : protected Poster {
 public:
@@ -28,9 +39,9 @@ public:
 	bool createDeviceIndependentResources();
 	bool createDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget);
 	void discardDeviceDependentResources();
-	virtual void handleControlShiftKeyPress(int key) {}
-	virtual void handleControlKeyPress(int key) {}
-	virtual void handleKeyPress(int key) {}
+	virtual bool handleControlShiftKeyPress(int key) { return false; }
+	virtual bool handleControlKeyPress(int key) { return false; }
+	virtual bool handleKeyPress(int key) {return false;}
 	virtual void handleDrag(int posx, int posy) {}
 	virtual void handleLeftUnclick(int posx, int posy) {}
 	void handleLeftClick(int posx, int posy) { extraHandleLeftClick(posx, posy); }
@@ -39,6 +50,8 @@ public:
 
 public:
 	bool stageResize = true;
+	FLOAT screenWidth;
+	FLOAT screenHeight;
 
 protected:
 	virtual void extraDraw(ID2D1HwndRenderTarget* renderTarget) const = 0;
@@ -57,8 +70,6 @@ protected:
 	float scrollAmount = 0;
 	int outlinePos = 200;
 	TextTree& textTree;
-	int screenWidth;
-	int screenHeight;
 
 	ID2D1SolidColorBrush* darkBGBrush;
 
@@ -76,53 +87,51 @@ protected:
 	int pSize;
 
 	ID2D1SolidColorBrush* foreBrush;
+	ID2D1SolidColorBrush* backBrush;
 	ID2D1SolidColorBrush* englishBrush;
 	ID2D1SolidColorBrush* tobairBrush;
 	D2D1::ColorF bgColor = D2D1::ColorF(D2D1::ColorF::Black);
 };
 
-
-class TranslationView : public View {
+class ViewHandler {
+	friend class Vokdh;
 public:
-	TranslationView(TextTree& textTree) : View(textTree) {}
+	static ViewHandler& summon() {
+		static ViewHandler handler;
+		return handler;
+	}
+	
+	bool handleControlShiftKeyPress(int key) { return view()->handleControlShiftKeyPress(key); }
+	bool handleKeyPress(int key);
+	bool handleControlKeyPress(int key);
+	void createDeviceIndependentResources() { view()->createDeviceIndependentResources(); }
+	void createDeviceDependentResources(ID2D1HwndRenderTarget* rt) { view()->createDeviceDependentResources(rt); }
+	void discardDeviceDependentResources() { view()->discardDeviceDependentResources(); }
+	void handleLeftUnclick(int x, int y) { view()->handleLeftUnclick(x, y); }
+	void handleLeftClick(int x, int y) { view()->handleLeftClick(x, y); }
+	void handleScroll(int amt) { view()->handleScroll(amt); }
+	void handleDrag(int x, int y) { view()->handleDrag(x, y); }
+	void draw(ID2D1HwndRenderTarget* rt);
+	void stageResize() { view()->stageResize = true; }
+	void open() { view()->open(); }
 
-public:
-	void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
-	void handleControlShiftKeyPress(int key) override;
-	void handleControlKeyPress(int key) override;
-	void handleKeyPress(int key) override;
-	void resize(int width, int height) { screenWidth = width, screenHeight = height; }
+	void switchTo(VIEW_TYPE);
 
 protected:
-	bool extraCreateDeviceIndependentResources() override;
-	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
-	void extraDiscardDeviceDependentResources() override;
-	void extraHandleLeftClick(int posx, int posy) override;
-	void handleLeftUnclick(int posx, int posy) override;
-	void handleDrag(int posx, int posy) override;
+	ViewHandler(TextTree& textTree);
 
 private:
-	void indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const;
-	void screenToIndex(int screenX, int screenY, int* indexX, int* indexY) const;
-	void deleteSelection();
-	void copySelectBoth();
-	void copySelected();
-	void paste();
-	int getIndexFromLine(int cursorPosY, int screenX) const;
+	ViewHandler() {}
+	~ViewHandler();
+	ViewHandler(ViewHandler const&) = delete;
+	ViewHandler(ViewHandler&&) = delete;
+	ViewHandler& operator=(ViewHandler const&) = delete;
+	ViewHandler& operator=(ViewHandler&&) = delete;
+	View* view();
 
-private:
-	int cursorPosX = 0;
-	int cursorPosY = 0;
-	int selectionCursorX;
-	int selectionCursorY;
-	bool selection = false;
-	bool selectBoth = false;
-	bool selectedWhileClicking;
+	bool drawGrayOut = false;
 
-	ID2D1SolidColorBrush* selectBrush;
-};
-
-
-class HelpView : public View {
-
+	TranslationView* translationView;
+	HelpView* helpView;
+	VIEW_TYPE viewType;
 };

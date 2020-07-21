@@ -10,6 +10,8 @@
 #include "message.h"
 #include "style.h"
 #include "text.h"
+#include "translationView.h"
+#include "helpView.h"
 
 
 class Logger : Listener, Poster {
@@ -103,7 +105,7 @@ private:
 	void discardDeviceDependentResources();
 	void paint();
 	void resize();
-	void handleKeyPress(int key);
+	bool handleKeyPress(int key);
 	void handleLeftClick(int keydown, int posx, int posy);
 	void toggleFullscreen();
 	void saveAs();
@@ -118,9 +120,7 @@ private:
 	UINT dpi;
 
 	Logger logger;
-	TranslationView translationView;
-	HelpView helpView;
-	View* view = &translationView;
+	ViewHandler viewHandler;
 
 	std::filesystem::path openFilePath;
 

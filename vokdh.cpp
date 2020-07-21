@@ -1,12 +1,11 @@
-#include "vokdh.h"
-
 #pragma comment(lib, "Shcore")
 
+#include "vokdh.h"
 #include <stack>
 #include <shellscalingapi.h>
 #include <windowsx.h>
 
-Vokdh::Vokdh(std::string commandLine) : loader(textTree), translationView(textTree) {
+Vokdh::Vokdh(std::string commandLine) : loader(textTree), viewHandler(textTree) {
 	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
 	if (commandLine != "" && loader.loadFile(commandLine)) {
 
@@ -34,7 +33,7 @@ BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	hwnd = CreateWindow(L"Vokdh class", L"Vokdh", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, this);
 
-	view->createDeviceIndependentResources();
+	viewHandler.createDeviceIndependentResources();
 
 	return (hwnd ? TRUE : FALSE);
 }
@@ -103,16 +102,16 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return 0;
 
 	case WM_LBUTTONUP:
-		view->handleLeftUnclick(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		viewHandler.handleLeftUnclick(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		return 0;
 
 	case WM_MOUSEWHEEL:
-		view->handleScroll(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
+		viewHandler.handleScroll(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
 		return 0;
 
 	case WM_MOUSEMOVE:
 		if (wParam & MK_LBUTTON) {
-			view->handleDrag(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+			viewHandler.handleDrag(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		}
 		return 0;
 
@@ -145,14 +144,14 @@ HRESULT Vokdh::createDeviceDependentResources() {
 		hr = factory->CreateHwndRenderTarget(D2D1::RenderTargetProperties(),
 			D2D1::HwndRenderTargetProperties(hwnd, size), &renderTarget);
 	}
-	view->createDeviceDependentResources(renderTarget);
+	viewHandler.createDeviceDependentResources(renderTarget);
 	return hr;
 }
 
 void Vokdh::discardDeviceDependentResources() {
 	SafeRelease(&renderTarget);
 
-	view->discardDeviceDependentResources();
+	viewHandler.discardDeviceDependentResources();
 }
 
 void Vokdh::paint() {
@@ -163,7 +162,7 @@ void Vokdh::paint() {
 
 		renderTarget->BeginDraw();
 
-		view->draw(renderTarget);
+		viewHandler.draw(renderTarget);
 
 		hr = renderTarget->EndDraw();
 		if (FAILED(hr) || hr == D2DERR_RECREATE_TARGET) {
@@ -184,23 +183,23 @@ void Vokdh::resize() {
 		InvalidateRect(hwnd, NULL, FALSE);
 	}
 
-	view->stageResize = true;
+	viewHandler.stageResize();
 }
 
 void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
-	view->handleLeftClick(posx, posy);
+	viewHandler.handleLeftClick(posx, posy);
 }
 
-void Vokdh::handleKeyPress(int key) {
+bool Vokdh::handleKeyPress(int key) {
 	if (GetKeyState(VK_CONTROL) & 0x8000) {
 		if (GetKeyState(VK_SHIFT) & 0x8000) {
 			// Control and shift
 			switch (key) {
 			case 'S':
 				saveAs();
-				return;
+				return true;
 			}
-			return view->handleControlShiftKeyPress(key);
+			return viewHandler.handleControlShiftKeyPress(key);
 		}
 		switch (key) {
 		case 'S':
@@ -210,42 +209,25 @@ void Vokdh::handleKeyPress(int key) {
 			else {
 				saveAs();
 			}
-			return;
+			return true;
 		case 'O':
 			open();
-			return;
+			return true;
 		case 'N':
 			newFile();
-			return;
-		case 'D':
-			// Dictionary
-			return;
-		case 'G':
-			// Grammar page
-			return;
-		case 'P':
-			// Preposition page
-			return;
-		case 'W':
-			// Short words page
-			return;
-		case 'T':
-			// Notes
-			return;
-		case 'H':
-			view = &helpView;
-			return;
+			return true;
 		}
-		return view->handleControlKeyPress(key);
+		return viewHandler.handleControlKeyPress(key);
 	}
 	switch (key) {
 	case VK_F11:
 		toggleFullscreen();
-		return;
+		return true;
 	default:
-		view->handleKeyPress(key);
-		return;
+		viewHandler.handleKeyPress(key);
+		return true;
 	}
+	return false;
 }
 
 void Vokdh::toggleFullscreen() {
@@ -322,5 +304,5 @@ void Vokdh::newFile() {
 	/// Check if current file has been saved.
 	loader.unload();
 	loader.newFile();
-	view->open();
+	viewHandler.open();
 }
