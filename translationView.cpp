@@ -16,6 +16,30 @@ void TranslationView::extraDiscardDeviceDependentResources() {
 }
 
 bool TranslationView::extraCreateDeviceIndependentResources() {
+	std::string englishFontName = (std::string)styleMap["fonts"]["english"];
+	if (englishFontName.empty()) { englishFontName = "Calibri"; }
+
+	h1Size = (int)styleMap["fonts"]["h1-size"];
+	if (h1Size == 0) { h1Size = 32; }
+	h2Size = (int)styleMap["fonts"]["h2-size"];
+	if (h2Size == 0) { h2Size = 24; }
+	h3Size = (int)styleMap["fonts"]["h3-size"];
+	if (h3Size == 0) { h3Size = 18; }
+	pSize = (int)styleMap["fonts"]["p-size"];
+	if (pSize == 0) { pSize = 12; }
+
+	HRESULT hr = writeFactory->CreateTextFormat(std::wstring(englishFontName.begin(), englishFontName.end()).c_str(), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL, h1Size, L"", &h1EnglishTextFormat);
+	if (FAILED(hr)) {
+		postMessage(MESSAGE_TYPE::M_TERMINATE, "Font " + englishFontName + " could not be used.");
+		return false;
+	}
+	writeFactory->CreateTextFormat(std::wstring(englishFontName.begin(), englishFontName.end()).c_str(), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL, h2Size, L"", &h2EnglishTextFormat);
+	writeFactory->CreateTextFormat(std::wstring(englishFontName.begin(), englishFontName.end()).c_str(), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL, h3Size, L"", &h3EnglishTextFormat);
+	writeFactory->CreateTextFormat(std::wstring(englishFontName.begin(), englishFontName.end()).c_str(), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+		DWRITE_FONT_STRETCH_NORMAL, pSize, L"", &pEnglishTextFormat);
 	return true;
 }
 
@@ -170,8 +194,6 @@ bool TranslationView::handleControlShiftKeyPress(int key) {
 }
 
 bool TranslationView::handleControlKeyPress(int key) {
-	TextCounter line;
-	int index;
 	switch (key) {
 	case 'A':
 		// Select all of type
@@ -188,18 +210,6 @@ bool TranslationView::handleControlKeyPress(int key) {
 			cursorPosX = textTree[cursorPosY].text().size();
 		}
 		selection = true;
-		return true;
-	case 'Q':
-		// Decrement header
-		line = textTree[cursorPosY];
-		index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
-		line.type() = index == 0 ? headers[headers.size() - 1] : headers[index - 1];
-		return true;
-	case 'E':
-		// Increment header
-		line = textTree[cursorPosY];
-		index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
-		line.type() = index == headers.size() - 1 ? headers[0] : headers[index + 1];
 		return true;
 	case VK_UP:
 		if (cursorPosY > 0) {
@@ -243,6 +253,7 @@ bool TranslationView::handleControlKeyPress(int key) {
 bool TranslationView::handleKeyPress(int key) {
 	std::string remainder;
 	TextCounter line, backLine;
+	int index;
 	if (GetKeyState(VK_SHIFT) & 0x8000) {
 		if (key == VK_LEFT || key == VK_RIGHT || key == VK_UP || key == VK_DOWN) {
 			if (!selection) {
@@ -251,11 +262,24 @@ bool TranslationView::handleKeyPress(int key) {
 				selectionCursorY = cursorPosY;
 			}
 		}
+		if (key == VK_TAB) {
+			// Decrement header
+			line = textTree[cursorPosY];
+			index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
+			line.type() = index == headers.size() - 1 ? headers[0] : headers[index + 1];
+			return true;
+		}
 	}
 	else if (key == VK_LEFT || key == VK_RIGHT || key == VK_UP || key == VK_DOWN) {
 		selection = false;
 	}
 	switch (key) {
+	case VK_TAB:
+		// Increment header
+		line = textTree[cursorPosY];
+		index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
+		line.type() = index == 0 ? headers[headers.size() - 1] : headers[index - 1];
+		return true;
 	case VK_LEFT:
 		if (cursorPosX > 0) {
 			cursorPosX--;
@@ -310,7 +334,12 @@ bool TranslationView::handleKeyPress(int key) {
 		if (!selection) {
 			if (cursorPosX != 0) {
 				TextCounter line = textTree[cursorPosY];
-				line.text() = line.text().substr(0, cursorPosX - 1) + line.text().substr(cursorPosX + 1);
+				if (cursorPosX != line.text().size()) {
+					line.text() = line.text().substr(0, cursorPosX - 1) + line.text().substr(cursorPosX);
+				}
+				else {
+					line.text() = line.text().substr(0, cursorPosX - 1);
+				}
 				cursorPosX--;
 			}
 			else if (cursorPosY / 2 > 0) {
@@ -347,7 +376,8 @@ bool TranslationView::handleKeyPress(int key) {
 		}
 		return true;
 	}
-	if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90)) {
+	if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90) || key == VK_OEM_PERIOD ||
+		key == VK_OEM_COMMA || key == VK_OEM_2 || key == VK_OEM_7 || key == VK_OEM_1) {
 		if (selection) { deleteSelection(); }
 		std::string letter = std::string(1, key);
 		if (GetKeyState(VK_SHIFT) & 0x8000) {
@@ -605,7 +635,7 @@ void TranslationView::extraHandleLeftClick(int posx, int posy) {
 			selectionCursorY = cursorPosY;
 		}
 		else {
-			// Move to this line.
+			/// Move to this line.
 		}
 	}
 }
@@ -739,4 +769,75 @@ void TranslationView::paste() {
 	cursorPosY += i;
 
 	cursor.text() += leftover;
+}
+
+int TranslationView::getLineHeight(std::string tag) const {
+	if (tag == "h1") {
+		return int(h1Size * 1.5f);
+	}
+	if (tag == "h2") {
+		return int(h2Size * 1.5f);
+	}
+	if (tag == "h3") {
+		return int(h3Size * 1.5f);
+	}
+	if (tag == "p") {
+		return int(pSize * 1.5f);
+	}
+	return 0;
+}
+
+IDWriteTextFormat* TranslationView::getTextFormat(std::string tag) const {
+	if (tag == "h1") {
+		return h1EnglishTextFormat;
+	}
+	if (tag == "h2") {
+		return h2EnglishTextFormat;
+	}
+	if (tag == "h3") {
+		return h3EnglishTextFormat;
+	}
+	if (tag == "p") {
+		return pEnglishTextFormat;
+	}
+	return 0;
+}
+
+void TranslationView::drawOutline(ID2D1HwndRenderTarget* renderTarget) const {
+	renderTarget->DrawLine({ (FLOAT)outlinePos, 0 }, { (FLOAT)outlinePos, (FLOAT)screenHeight }, darkBGBrush, 2);
+
+	int ypos = TEXT_BUFFER;
+	for (NodeCounter c = textTree.firstNode(); !c.isLast(); c++) {
+		if (c.type() == "h1") {
+			std::string text = c.text()[0];
+			std::wstring wtext = std::wstring(text.begin(), text.end());
+			int lineHeight = getLineHeight("h2");
+			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat("h2"),
+				D2D1::RectF(TEXT_BUFFER, ypos, outlinePos, ypos + lineHeight), englishBrush);
+			ypos += lineHeight;
+		}
+		if (c.type() == "h2") {
+			std::string text = c.text()[0];
+			std::wstring wtext = std::wstring(text.begin(), text.end());
+			int lineHeight = getLineHeight("h3");
+			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat("h3"),
+				D2D1::RectF(TEXT_BUFFER + OUTLINE_INDENT, ypos, outlinePos, ypos + lineHeight), englishBrush);
+			ypos += lineHeight;
+		}
+		if (c.type() == "h3") {
+			std::string text = c.text()[0];
+			std::wstring wtext = std::wstring(text.begin(), text.end());
+			int lineHeight = getLineHeight("p");
+			renderTarget->DrawText(wtext.c_str(), wtext.size(), getTextFormat("p"),
+				D2D1::RectF(TEXT_BUFFER + 2 * OUTLINE_INDENT, ypos, outlinePos, ypos + lineHeight), englishBrush);
+			ypos += lineHeight;
+		}
+	}
+}
+
+void TranslationView::handleScroll(int scrollTimes) {
+	scrollAmount -= scrollTimes;
+	scrollAmount = max(scrollAmount, 0);
+
+	scrollAmount = min(scrollAmount, textTree.size() - 1);
 }

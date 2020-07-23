@@ -20,7 +20,8 @@ protected:
 	void extraDiscardDeviceDependentResources() override;
 	void extraHandleLeftClick(int posx, int posy) override;
 	void handleLeftUnclick(int posx, int posy) override;
-	void handleDrag(int posx, int posy) override;
+	void handleDrag(int posx, int posy) override; 
+	void handleScroll(int scrollTimes) override;
 
 private:
 	void indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const;
@@ -30,8 +31,13 @@ private:
 	void copySelected();
 	void paste();
 	int getIndexFromLine(int cursorPosY, int screenX) const;
+	int getLineHeight(std::string tag) const;
+	IDWriteTextFormat* getTextFormat(std::string tag) const;
+	void drawOutline(ID2D1HwndRenderTarget* renderTarget) const;
 
 private:
+	float scrollAmount = 0;
+	int outlinePos = 200;
 	int cursorPosX = 0;
 	int cursorPosY = 0;
 	int selectionCursorX;
@@ -41,4 +47,13 @@ private:
 	bool selectedWhileClicking;
 
 	ID2D1SolidColorBrush* selectBrush;
+
+	IDWriteTextFormat* h1EnglishTextFormat;
+	IDWriteTextFormat* h2EnglishTextFormat;
+	IDWriteTextFormat* h3EnglishTextFormat;
+	IDWriteTextFormat* pEnglishTextFormat;
+	int h1Size;
+	int h2Size;
+	int h3Size;
+	int pSize;
 };

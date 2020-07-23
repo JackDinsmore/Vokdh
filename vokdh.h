@@ -113,8 +113,8 @@ private:
 	void newFile();
 
 private:
-	ID2D1Factory* factory;
-	ID2D1HwndRenderTarget* renderTarget;
+	ID2D1Factory* factory = nullptr;
+	ID2D1HwndRenderTarget* renderTarget = nullptr;
 
 	HWND hwnd;
 	UINT dpi;

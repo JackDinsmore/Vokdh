@@ -1,4 +1,5 @@
 #pragma comment(lib, "Shcore")
+#include "resource.h"
 
 #include "vokdh.h"
 #include <stack>
@@ -20,16 +21,16 @@ BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
 	WNDCLASS wc = { 0 };
 
+	HICON icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+
 	wc.lpfnWndProc = Vokdh::windowProc;
 	wc.hInstance = GetModuleHandle(NULL);
 	wc.lpszClassName = L"Vokdh class";
+	wc.hIcon = icon;
 	dpi = GetDpiForSystem();
 
 	RegisterClass(&wc);
 
-	/*hwnd = CreateWindowEx(0, L"Vokdh class", L"Vokdh",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, GetModuleHandle(NULL), this);*/
 	hwnd = CreateWindow(L"Vokdh class", L"Vokdh", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, this);
 
@@ -191,7 +192,7 @@ void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
 }
 
 bool Vokdh::handleKeyPress(int key) {
-	if (GetKeyState(VK_CONTROL) & 0x8000) {
+	if (GetKeyState(VK_CONTROL) & 0x8000 && key != VK_CONTROL) {
 		if (GetKeyState(VK_SHIFT) & 0x8000) {
 			// Control and shift
 			switch (key) {

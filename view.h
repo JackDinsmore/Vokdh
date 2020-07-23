@@ -22,11 +22,19 @@
 enum class VIEW_TYPE {
 	TRANSLATION,
 	HELP,
+	DICTIONARY,
+	GRAMMAR,
+	PREPOSITIONS,
+	SHORT_WORDS,
 };
 
 
 class TranslationView;
 class HelpView;
+class DictionaryView;
+class GrammarView; 
+class PrepositionsView;
+class ShortWordsView;
 
 class View : protected Poster {
 public:
@@ -45,7 +53,7 @@ public:
 	virtual void handleDrag(int posx, int posy) {}
 	virtual void handleLeftUnclick(int posx, int posy) {}
 	void handleLeftClick(int posx, int posy) { extraHandleLeftClick(posx, posy); }
-	void handleScroll(int scrollTimes);
+	virtual void handleScroll(int scrollTimes) {}
 	void open();
 
 public:
@@ -55,7 +63,6 @@ public:
 
 protected:
 	virtual void extraDraw(ID2D1HwndRenderTarget* renderTarget) const = 0;
-	void drawOutline(ID2D1HwndRenderTarget* renderTarget) const;
 
 	virtual void extraInit() {}
 	virtual bool extraCreateDeviceIndependentResources() { return true; }
@@ -63,12 +70,7 @@ protected:
 	virtual void extraDiscardDeviceDependentResources() {}
 	virtual void extraHandleLeftClick(int posx, int posy) {}
 
-	int getLineHeight(std::string tag) const;
-	IDWriteTextFormat* getTextFormat(std::string tag) const;
-
 protected:
-	float scrollAmount = 0;
-	int outlinePos = 200;
 	TextTree& textTree;
 
 	ID2D1SolidColorBrush* darkBGBrush;
@@ -76,15 +78,6 @@ protected:
 	IDWriteFactory* writeFactory;
 
 	StyleMap styleMap = styleMap.summon();
-
-	IDWriteTextFormat* h1EnglishTextFormat;
-	IDWriteTextFormat* h2EnglishTextFormat;
-	IDWriteTextFormat* h3EnglishTextFormat;
-	IDWriteTextFormat* pEnglishTextFormat;
-	int h1Size;
-	int h2Size;
-	int h3Size;
-	int pSize;
 
 	ID2D1SolidColorBrush* foreBrush;
 	ID2D1SolidColorBrush* backBrush;
@@ -133,5 +126,9 @@ private:
 
 	TranslationView* translationView;
 	HelpView* helpView;
+	DictionaryView* dictionaryView;
+	GrammarView* grammarView;
+	PrepositionsView* prepositionsView;
+	ShortWordsView* shortWordsView;
 	VIEW_TYPE viewType;
 };
