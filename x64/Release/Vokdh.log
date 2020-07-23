@@ -1,7 +1,16 @@
-﻿  helpView.cpp
+﻿  dictionary.cpp
+  dictionaryView.cpp
+  grammarView.cpp
+  helpView.cpp
+  main.cpp
+  prepositionsView.cpp
+  shortWordsView.cpp
+  translationView.cpp
+  view.cpp
+  vokdh.cpp
   Generating code
-  160 of 1423 functions (11.2%) were compiled, the rest were copied from previous compilation.
-    63 functions were new in current compilation
-    200 functions had inline decision re-evaluated but remain unchanged
+  1455 of 1955 functions (74.4%) were compiled, the rest were copied from previous compilation.
+    540 functions were new in current compilation
+    133 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   Vokdh.vcxproj -> C:\Users\goods\Desktop\Projects\Language\Vokdh\x64\Release\Vokdh.exe
