@@ -89,7 +89,8 @@ void Dictionary::addWord(WordPair word) {
 
 void Dictionary::addPreposition(WordPair word) {
 	// Must be tobair, english
-	maxPrepLength = max(maxPrepLength, word.first.size());
+	shortestPrep = min(shortestPrep, word.first.size());
+	longestPrep = max(longestPrep, word.first.size());
 	tobairEnglishMapPrepositions.insert(word);
 	englishTobairMapPrepositions.insert({ word.second, word.first });
 }
@@ -339,4 +340,364 @@ void Dictionary::save() const {
 	else {
 		postMessage(MESSAGE_TYPE::M_TERMINATE, "Could not find dictionary file.");
 	}
+}
+
+Grammar Dictionary::translate(std::string tobair) const {
+	std::for_each(tobair.begin(), tobair.end(), [](char& c) {
+		c = std::tolower(c);
+	});
+
+	Grammar noPro;
+	translateWithoutPronoun(tobair, noPro);
+	if (noPro.rootEnglish != "?" && noPro.pos != PART_OF_SPEECH::NONE) {
+		return noPro;
+	}
+	Grammar pro;
+	translateWithoutPronoun(stripPrep(tobair, &pro), pro);
+	return pro;
+}
+
+void Dictionary::translateWithoutPronoun(std::string tobair, Grammar& g) const {
+	auto pIndex = std::find(pronouns.begin(), pronouns.end(), tobair);
+	auto qIndex = std::find(questionWords.begin(), questionWords.end(), tobair);
+	auto sIndex = std::find(shortWords.begin(), shortWords.end(), tobair);
+	if (pIndex != pronouns.end()) {
+		g.pos = PART_OF_SPEECH::PRONOUN;
+		g.rootTobair = tobair;
+		g.rootEnglish = findEnglish(*pIndex);
+		return;
+	}
+	else if (qIndex != questionWords.end()) {
+		g.pos = PART_OF_SPEECH::PRONOUN;
+		g.rootTobair = tobair;
+		g.rootEnglish = findEnglish(*qIndex);
+		return;
+	}
+	else if (sIndex != shortWords.end()) {
+		g.pos = PART_OF_SPEECH::PRONOUN;
+		g.rootTobair = tobair;
+		g.rootEnglish = findEnglish(*sIndex);
+		return;
+	}
+		
+	// Noun or adjective:
+	std::string nounStrip, verbStrip, consonant, vowel;
+	nounStrip = stripNoun(tobair, &g);
+	consonant = takeOffConsonant(&nounStrip);
+	if (!consonant.empty()) {
+		std::string wordConsonants[3];
+		wordConsonants[0] = consonant;
+		vowel = takeOffVowel(&nounStrip);
+		if (vowel == "e" || vowel == "a" || vowel == "o" || vowel == "i") {
+			g.pos = PART_OF_SPEECH::NOUN;
+		}
+		else if (vowel == "ee" || vowel == "ai" || vowel == "oi" || vowel == "oui") {
+			g.pos = PART_OF_SPEECH::ADJ;
+		}
+		else {
+			goto Verb;
+		}
+		if (vowel == "e" || vowel == "ee") { g.info[0] = "agent"; }
+		if (vowel == "a" || vowel == "ai") { g.info[0] = "result"; }
+		if (vowel == "o" || vowel == "oi") { g.info[0] = "tool"; }
+		if (vowel == "i" || vowel == "oui") { g.info[0] = "DO/IO"; }
+
+		consonant = takeOffConsonant(&nounStrip);
+		if (!consonant.empty()) {
+			wordConsonants[1] = consonant;
+			vowel = takeOffVowel(&nounStrip);
+
+			if (vowel == "i") { g.info[1] = "people"; }
+			else if (vowel == "u") { g.info[1] = "place"; }
+			else if (vowel == "e" || vowel == "") { g.info[1] = "thing"; }
+			else if (vowel == "ai") { g.info[1] = "idea"; }
+			else if (vowel == "oi") { g.info[1] = "time"; }
+			else {
+				goto Verb;
+			}
+
+			consonant = takeOffConsonant(&nounStrip);
+			if (!consonant.empty()) {
+				wordConsonants[2] = consonant;
+				vowel = takeOffVowel(&nounStrip); 
+				if (vowel == "i" || vowel == " ") { g.info[2] = "sing"; }
+				else if (vowel == "ee") { g.info[2] = "pau"; }
+				else if (vowel == "ai" || vowel == "") { g.info[2] = "pl"; }
+				else {
+					goto Verb;
+				}
+
+				g.rootTobair = wordConsonants[0] + " " + wordConsonants[1] + " " + wordConsonants[2];
+				g.rootEnglish = findEnglish(g.rootTobair);
+				if (g.rootEnglish == "") { g.rootEnglish = "?"; }
+
+				if (!nounStrip.empty()) {
+					// Suffixes
+					bool stripped = true;
+					while (stripped) {
+						stripped = false;
+						if (nounStrip.substr(0, 3) == "sil") {
+							g.suffixesTobair.push_back("sil");
+							g.suffixesEnglish.push_back("compar");
+							nounStrip = nounStrip.substr(3);
+							stripped = true;
+						}
+						if (nounStrip.substr(0, 3) == "lir") {
+							g.suffixesTobair.push_back("lir");
+							g.suffixesEnglish.push_back("past");
+							nounStrip = nounStrip.substr(3);
+							stripped = true;
+						}
+						if (nounStrip.substr(0, 6) == "sithel") {
+							g.suffixesTobair.push_back("sithel");
+							g.suffixesEnglish.push_back("superl");
+							nounStrip = nounStrip.substr(6);
+							stripped = true;
+						}
+						if (nounStrip.substr(0, 5) == "loira") {
+							g.suffixesTobair.push_back("loira");
+							g.suffixesEnglish.push_back("future");
+							nounStrip = nounStrip.substr(5);
+							stripped = true;
+						}
+						if (nounStrip.substr(0, 5) == "skire") {
+							g.suffixesTobair.push_back("skire");
+							g.suffixesEnglish.push_back("dimin");
+							nounStrip = nounStrip.substr(5);
+							stripped = true;
+						}
+					}
+					if (!nounStrip.empty()) {
+						goto Plain;
+					}
+				}
+
+				return;
+			}
+			else {
+				goto Plain;
+			}
+		}
+		else {
+			goto Plain;
+		}
+	}
+
+Verb:
+	verbStrip = stripVerb(tobair, &g);
+	vowel = takeOffVowel(&verbStrip);
+	if (!vowel.empty()) {
+		g.pos = PART_OF_SPEECH::VERB;
+		std::string wordConsonants[3];
+
+		consonant = takeOffConsonant(&verbStrip);
+		if (consonant.empty()) { goto Plain; }
+		wordConsonants[0] = consonant;
+
+		if (vowel == "a") { g.info[0] = "past"; }
+		else if (vowel == "e") { g.info[0] = "present"; }
+		else if (vowel == "oi") { g.info[0] = "future"; }
+		else {
+			goto Plain;
+		}
+
+
+		vowel = takeOffVowel(&verbStrip);
+		consonant = takeOffConsonant(&verbStrip);
+		if (!consonant.empty()) {
+			wordConsonants[1] = consonant;
+			if (vowel == "e" || vowel == "") { g.info[1] = "ind"; }
+			else if (vowel == "ai") { g.info[1] = "imper"; }
+			else if (vowel == "u") { g.info[1] = "intro"; }
+			else if (vowel == "a") { g.info[1] = "rel"; }
+			else if (vowel == "oui") { g.info[1] = "purp"; }
+			else if (vowel == "i") { g.info[1] = "res"; }
+			else if (vowel == "o") { g.info[1] = "indir"; }
+			else {
+				goto Plain;
+			}
+
+			vowel = takeOffVowel(&verbStrip);
+			consonant = takeOffConsonant(&verbStrip);
+			if (!consonant.empty()) {
+				wordConsonants[2] = consonant;
+				if (vowel == "a" || vowel == "") { g.info[2] = "act"; }
+				else if (vowel == "o") { g.info[2] = "pass"; }
+				else if (vowel == "ai") { g.info[2] = "ref"; }
+				else {
+					goto Plain;
+				}
+
+				g.rootTobair = wordConsonants[0] + " " + wordConsonants[1] + " " + wordConsonants[2];
+				g.rootEnglish = findEnglish(g.rootTobair);
+				if (g.rootEnglish == "") { g.rootEnglish = "?"; }
+
+				if (!verbStrip.empty()) {
+					// Suffixes
+					if (verbStrip == "e") {
+						g.suffixesTobair.push_back("e");
+						g.suffixesTobair.push_back("imp");
+					}
+					else if (verbStrip == "oi") {
+						g.suffixesTobair.push_back("oi");
+						g.suffixesTobair.push_back("+ time");
+					}
+					else if (verbStrip == "a") {
+						g.suffixesTobair.push_back("a");
+						g.suffixesTobair.push_back("- time");
+					}
+					else {
+						goto Plain;
+					}
+				}
+
+				return;
+			}
+			else {
+				goto Plain;
+			}
+		}
+		else {
+			goto Plain;
+		}
+	}
+
+Plain:
+	std::string eng = findEnglish(tobair);
+	if (!eng.empty()) {
+		g.pos = PART_OF_SPEECH::PROPER;
+		g.rootTobair = tobair;
+		g.rootEnglish = eng;
+		g.info[0] = ""; g.info[1] = ""; g.info[2] = "";
+		return;
+	}
+	else {
+		goto Be;
+	}
+
+Be:
+	verbStrip = stripVerb(tobair, &g);
+	vowel = takeOffVowel(&verbStrip);
+	if (!vowel.empty()) {
+		g.pos = PART_OF_SPEECH::VERB;
+		if (vowel == "a") { g.info[0] = "past"; }
+		else if (vowel == "e") { g.info[0] = "present"; }
+		else if (vowel == "oi") { g.info[0] = "future"; }
+		else {
+			goto Error;
+		}
+		if (takeOffConsonant(&verbStrip) == "f") {
+			vowel = takeOffVowel(&verbStrip);
+			if (vowel == "e" || vowel == "") { g.info[1] = "ind"; }
+			else if (vowel == "ai") { g.info[1] = "imper"; }
+			else if (vowel == "u") { g.info[1] = "intro"; }
+			else if (vowel == "a") { g.info[1] = "rel"; }
+			else if (vowel == "oui") { g.info[1] = "purp"; }
+			else if (vowel == "i") { g.info[1] = "res"; }
+			else if (vowel == "o") { g.info[1] = "indir"; }
+			else {
+				goto Error;
+			}
+
+			g.rootTobair = "f (b r)";
+			g.rootEnglish = "be";
+
+			if (!verbStrip.empty()) {
+				// Suffixes
+				if (verbStrip == "e") {
+					g.suffixesTobair.push_back("e");
+					g.suffixesTobair.push_back("imp");
+				}
+				else if (verbStrip == "oi") {
+					g.suffixesTobair.push_back("oi");
+					g.suffixesTobair.push_back("+ time");
+				}
+				else if (verbStrip == "a") {
+					g.suffixesTobair.push_back("a");
+					g.suffixesTobair.push_back("- time");
+				}
+				else {
+					goto Error;
+				}
+			}
+
+			return;
+		}
+		else {
+			goto Error;
+		}
+	}
+	else {
+		goto Error;
+	}
+
+	
+Error:
+	g.pos = PART_OF_SPEECH::NONE;
+	g.rootTobair = tobair;
+	g.rootEnglish = "?";
+	return;
+}
+
+std::string Dictionary::stripPrep(std::string tobair, Grammar* g) const {
+	for (int i = shortestPrep; i <= longestPrep; i++) {
+		auto p = tobairEnglishMapPrepositions.find(tobair.substr(0, i));
+		if (p != tobairEnglishMapPrepositions.end()) {
+			g->prepositionTobair = tobair.substr(0, i);
+			g->prepositionEnglish = p->second;
+			return tobair.substr(i);
+		}
+	}
+	return tobair;
+}
+
+std::string Dictionary::stripNoun(std::string tobair, Grammar* g) const {
+	if (tobair.substr(0, 3) == "shi") {
+		g->prefixesTobair.push_back("shi");
+		g->prefixesEnglish.push_back("not");
+		return tobair.substr(3);
+	}
+	return tobair;
+}
+
+std::string Dictionary::stripVerb(std::string tobair, Grammar* g) const {
+	if (tobair.substr(0, 2) == "sh") {
+		g->prefixesTobair.push_back("sh");
+		g->prefixesEnglish.push_back("not");
+		return tobair.substr(2);
+	}
+	return tobair;
+}
+
+std::string Dictionary::takeOffConsonant(std::string* tobair) const {
+	auto p = std::find(consonants.begin(), consonants.end(), tobair->substr(0, 2));
+	if (tobair->size() >= 2 && p != consonants.end()) {
+		*tobair = tobair->substr(2);
+		return *p;
+	}
+	p = std::find(consonants.begin(), consonants.end(), tobair->substr(0, 1));
+	if (tobair->size() >= 1 && p != consonants.end()) {
+		*tobair = tobair->substr(1);
+		return *p;
+	}
+	return "";
+}
+
+std::string Dictionary::takeOffVowel(std::string* tobair) const {
+	auto p = std::find(vowels.begin(), vowels.end(), tobair->substr(0, 3));
+	if (tobair->size() >= 3 && p != vowels.end()) {
+		*tobair = tobair->substr(3);
+		return *p;
+	}
+	p = std::find(vowels.begin(), vowels.end(), tobair->substr(0, 2));
+	if (tobair->size() >= 2 && p != vowels.end()) {
+		*tobair = tobair->substr(2);
+		return *p;
+	}
+	p = std::find(vowels.begin(), vowels.end(), tobair->substr(0, 1));
+	if (tobair->size() >= 1 && p != vowels.end()) {
+		*tobair = tobair->substr(1);
+		return *p;
+	}
+	return "";
 }

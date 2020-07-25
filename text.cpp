@@ -305,9 +305,6 @@ bool FileLoader::loadFile(const std::filesystem::path filePath) {
 				lines.pop();
 			}
 			else {
-				if (line.empty()) {
-					continue;
-				}
 				if (line[0] == '\\') {
 					if (line[1] == '#') {
 						line = '#' + line.substr(2);

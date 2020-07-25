@@ -54,6 +54,7 @@ public:
 	virtual void handleLeftUnclick(int posx, int posy) {}
 	void handleLeftClick(int posx, int posy) { extraHandleLeftClick(posx, posy); }
 	virtual void handleScroll(int scrollTimes) {}
+	virtual void handleMouseMotion(int x, int y) {};
 	void open();
 
 public:
@@ -104,6 +105,7 @@ public:
 	void handleLeftClick(int x, int y) { view()->handleLeftClick(x, y); }
 	void handleScroll(int amt) { view()->handleScroll(amt); }
 	void handleDrag(int x, int y) { view()->handleDrag(x, y); }
+	void handleMouseMotion(int x, int y) { view()->handleMouseMotion(x, y); }
 	void draw(ID2D1HwndRenderTarget* rt);
 	void stageResize() { view()->stageResize = true; }
 	void open() { view()->open(); }

@@ -2,7 +2,6 @@
 #include <sstream>
 
 
-
 std::vector<std::string> headers = { "h1", "h2", "h3", "p" };
 
 
@@ -169,6 +168,9 @@ void TranslationView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 	screenX += outlinePos;
 	renderTarget->DrawLine({ (FLOAT)screenX + TEXT_BUFFER, (FLOAT)screenY }, { (FLOAT)screenX + TEXT_BUFFER, (FLOAT)(screenY + lineHeight) }, foreBrush, 2);
 
+	// Draw hover
+	drawHover(renderTarget);
+
 	// Draw scrollbar
 	FLOAT scrollTop = scrollAmount / textTree.size() * screenHeight;
 	FLOAT scrollWidth = float(linesTraversed) / textTree.size() * screenHeight;
@@ -176,11 +178,12 @@ void TranslationView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 }
 
 bool TranslationView::handleControlShiftKeyPress(int key) {
+	int tempCX, tempCY;
 	switch (key) {
 	case 'A':
 		// Select all text
-		int tempCX = cursorPosX;
-		int tempCY = cursorPosY;
+		tempCX = cursorPosX;
+		tempCY = cursorPosY;
 		cursorPosX = 0;
 		cursorPosY = 0;
 		selectionCursorY = textTree.size() - 1;
@@ -188,6 +191,9 @@ bool TranslationView::handleControlShiftKeyPress(int key) {
 		copySelectBoth();
 		cursorPosX = tempCX;
 		cursorPosY = tempCY;
+		return true;
+	case 'C':
+		/// Check grammar for all words.
 		return true;
 	}
 	return false;
@@ -343,11 +349,9 @@ bool TranslationView::handleKeyPress(int key) {
 				cursorPosX--;
 			}
 			else if (cursorPosY / 2 > 0) {
-				int lowerCursor = (cursorPosY / 2 - 1) * 2;
-				int thisCursor = (cursorPosY / 2) * 2;
-				textTree[lowerCursor].text() += textTree[thisCursor].text();
-				cursorPosX = textTree[thisCursor].text().size() - 2;
-				textTree[lowerCursor + 1].text() += textTree[thisCursor + 1].text();
+				textTree[cursorPosY - 2].text() += textTree[cursorPosY].text();
+				cursorPosX = textTree[cursorPosY].text().size() - 2;
+				textTree[cursorPosY - 2 + (cursorPosY % 2 == 0) ? +1 : -1].text() += textTree[cursorPosY - 2 + (cursorPosY % 2 == 0) ? +1 : -1].text();
 				textTree.remove(cursorPosY);
 				cursorPosY -= 2;
 			}
@@ -677,9 +681,11 @@ void TranslationView::deleteSelection() {
 		tcBegin.text() = tcBegin.text().substr(0, selectionCursorY > cursorPosY ? cursorPosX : selectionCursorX);
 		// Delete every middle line
 		int i = min(selectionCursorY, cursorPosY) + 1;
+		int s;
 		if (i % 2 == 1) { i++; }
 		for (; i < (max(selectionCursorY, cursorPosY) / 2) * 2; i += 2) {
-			textTree.remove(i);
+			textTree.remove(min(selectionCursorY, cursorPosY) + 2);/// Fix this!
+			s = textTree.size();
 		}
 
 		// Handle last line
@@ -840,4 +846,132 @@ void TranslationView::handleScroll(int scrollTimes) {
 	scrollAmount = max(scrollAmount, 0);
 
 	scrollAmount = min(scrollAmount, textTree.size() - 1);
+}
+
+void TranslationView::handleMouseMotion(int x, int y) {
+	int newHoverIndexX, newHoverIndexY;
+	screenToIndex(x - (outlinePos + TEXT_BUFFER), y, &newHoverIndexX, &newHoverIndexY);
+	if (newHoverIndexY % 2 == 1) {
+		std::string line = textTree[newHoverIndexY].text();
+		int startIndex = line.substr(0, newHoverIndexX).find_last_of(' ');
+		int endIndex = line.substr(newHoverIndexX).find_first_of(' ');
+		if (endIndex == -1) { endIndex = line.size() - newHoverIndexX; }
+		int periodIndex = line.substr(newHoverIndexX).find_first_of('.');
+		if (periodIndex != -1) {
+			endIndex = min(endIndex, periodIndex);
+		}
+		endIndex += newHoverIndexX;
+		std::string hoverWord;
+		if (startIndex != -1) {
+			hoverWord = line.substr(startIndex + 1, endIndex - startIndex - 1);
+		}
+		else {
+			startIndex = 0;
+			hoverWord = line.substr(startIndex, endIndex);
+		}
+		newHoverIndexX = startIndex;
+		if (newHoverIndexX != hoverIndexX || newHoverIndexY != hoverIndexY) {
+			grammar = dictionary.translate(hoverWord);
+			hoverIndexX = newHoverIndexX;
+			hoverIndexY = newHoverIndexY;
+			indexToScreen(startIndex, hoverIndexY, &hoverScreenX, &hoverScreenY);
+			hoverScreenX += outlinePos + TEXT_BUFFER;
+			hoverScreenY += getLineHeight(textTree[newHoverIndexY].type());
+		}
+	}
+}
+
+void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
+	std::wstring firstLine, secondLine, thirdLine, fourthLine;
+
+	// First line
+	switch (grammar.pos) {
+	case PART_OF_SPEECH::NONE:
+		firstLine = L"Error"; break;
+	case PART_OF_SPEECH::NOUN:
+		firstLine = L"n."; break;
+	case PART_OF_SPEECH::VERB:
+		firstLine = L"v."; break;
+	case PART_OF_SPEECH::ADJ:
+		firstLine = L"adj."; break;
+	case PART_OF_SPEECH::PROPER:
+		firstLine = L"Proper noun"; break;
+	case PART_OF_SPEECH::PRONOUN:
+		firstLine = L"pron."; break;
+	case PART_OF_SPEECH::SHORT:
+		firstLine = L"short"; break;
+	}
+
+	// Second line
+	if (grammar.prepositionEnglish != "") {
+		secondLine += std::wstring(grammar.prepositionEnglish.begin(), grammar.prepositionEnglish.end()) + L"+";
+	}
+	for (std::string s : grammar.prefixesEnglish) {
+		secondLine += std::wstring(s.begin(), s.end()) + L"+";
+	}
+	secondLine += std::wstring(grammar.rootEnglish.begin(), grammar.rootEnglish.end()) + L"+";
+	for (std::string s : grammar.suffixesEnglish) {
+		secondLine += std::wstring(s.begin(), s.end()) + L"+";
+	}
+	secondLine = secondLine.substr(0, secondLine.size() - 1);
+
+	// Third line
+	if (grammar.prepositionTobair!= "") {
+		thirdLine += std::wstring(grammar.prepositionTobair.begin(), grammar.prepositionTobair.end()) + L"+";
+	}
+	for (std::string s : grammar.prefixesTobair) {
+		thirdLine += std::wstring(s.begin(), s.end()) + L"+";
+	}
+	thirdLine += std::wstring(grammar.rootTobair.begin(), grammar.rootTobair.end()) + L"+";
+	for (std::string s : grammar.suffixesTobair) {
+		thirdLine += std::wstring(s.begin(), s.end()) + L"+";
+	}
+	thirdLine = thirdLine.substr(0, thirdLine.size() - 1);
+
+	// Fourth line
+	fourthLine = std::wstring(grammar.info[0].begin(), grammar.info[0].end()) + L", " +
+		std::wstring(grammar.info[1].begin(), grammar.info[1].end()) + L", " +
+		std::wstring(grammar.info[2].begin(), grammar.info[2].end());
+
+	// Get width of box
+	FLOAT width = 0;
+	IDWriteTextLayout* layout;
+	DWRITE_TEXT_METRICS metrics;
+
+	// Check if cursor is even over line
+	writeFactory->CreateTextLayout(firstLine.c_str(), firstLine.size(), h3EnglishTextFormat, screenWidth, screenHeight, &layout);
+	layout->GetMetrics(&metrics);
+	width = max(width, metrics.width);
+	SafeRelease(&layout);
+
+	writeFactory->CreateTextLayout(secondLine.c_str(), secondLine.size(), h3EnglishTextFormat, screenWidth, screenHeight, &layout);
+	layout->GetMetrics(&metrics);
+	width = max(width, metrics.width);
+	SafeRelease(&layout);
+
+	writeFactory->CreateTextLayout(thirdLine.c_str(), thirdLine.size(), h3EnglishTextFormat, screenWidth, screenHeight, &layout);
+	layout->GetMetrics(&metrics);
+	width = max(width, metrics.width);
+	SafeRelease(&layout);
+
+	writeFactory->CreateTextLayout(fourthLine.c_str(), fourthLine.size(), h3EnglishTextFormat, screenWidth, screenHeight, &layout);
+	layout->GetMetrics(&metrics);
+	width = max(width, metrics.width);
+	SafeRelease(&layout);
+
+
+	D2D1_RECT_F rect = { (FLOAT)hoverScreenX, (FLOAT)hoverScreenY, (FLOAT)hoverScreenX + width + 2 * TEXT_BUFFER, (FLOAT)hoverScreenY + 80 + TEXT_BUFFER };
+	rt->FillRectangle(rect, darkBGBrush);
+	rt->DrawRectangle(rect, tobairBrush);
+	rect.left += TEXT_BUFFER;
+	rect.right -= TEXT_BUFFER;
+
+	rt->DrawText(firstLine.c_str(), firstLine.size(), h3EnglishTextFormat, rect, tobairBrush);
+	rect.top += 20;
+	rt->DrawText(secondLine.c_str(), secondLine.size(), h3EnglishTextFormat, rect, englishBrush);
+	rect.top += 20;
+	rt->DrawText(thirdLine.c_str(), thirdLine.size(), h3EnglishTextFormat, rect, tobairBrush);
+	rect.top += 20;
+	rt->DrawText(fourthLine.c_str(), fourthLine.size(), h3EnglishTextFormat, rect, englishBrush);
+	rect.top += 20;
 }

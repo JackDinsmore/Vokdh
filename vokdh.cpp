@@ -114,6 +114,9 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		if (wParam & MK_LBUTTON) {
 			viewHandler.handleDrag(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		}
+		else {
+			viewHandler.handleMouseMotion(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		}
 		return 0;
 
 	case WM_DESTROY:

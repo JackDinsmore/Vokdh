@@ -1,6 +1,6 @@
 #pragma once
 #include "view.h"
-
+#include "dictionary.h"
 
 
 class TranslationView : public View {
@@ -22,6 +22,7 @@ protected:
 	void handleLeftUnclick(int posx, int posy) override;
 	void handleDrag(int posx, int posy) override; 
 	void handleScroll(int scrollTimes) override;
+	void handleMouseMotion(int x, int y) override;
 
 private:
 	void indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const;
@@ -34,6 +35,7 @@ private:
 	int getLineHeight(std::string tag) const;
 	IDWriteTextFormat* getTextFormat(std::string tag) const;
 	void drawOutline(ID2D1HwndRenderTarget* renderTarget) const;
+	void drawHover(ID2D1HwndRenderTarget* rt) const;
 
 private:
 	float scrollAmount = 0;
@@ -42,6 +44,10 @@ private:
 	int cursorPosY = 0;
 	int selectionCursorX;
 	int selectionCursorY;
+	int hoverIndexX;
+	int hoverIndexY;
+	int hoverScreenX;
+	int hoverScreenY;
 	bool selection = false;
 	bool selectBoth = false;
 	bool selectedWhileClicking;
@@ -56,4 +62,7 @@ private:
 	int h2Size;
 	int h3Size;
 	int pSize;
+
+	Dictionary dictionary = dictionary.summon();
+	Grammar grammar;
 };

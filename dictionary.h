@@ -13,6 +13,30 @@ typedef std::pair<std::string, std::string> WordPair;
 inline extern const std::array<std::string, NUM_CONSONANTS> consonants = { "b", "d", "f", "g", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "z", "ch", "sh", "th", "dh", "'" };
 inline extern const std::array<std::string, NUM_VOWELS> vowels = {"a", "ai", "e", "ee", "i", "o", "oi", "u", "oui"};
 
+
+enum class PART_OF_SPEECH {
+	NONE,
+	NOUN,
+	VERB,
+	ADJ,
+	PROPER,
+	PRONOUN,
+	SHORT,
+};
+
+struct Grammar {
+	PART_OF_SPEECH pos;
+	std::string rootTobair;
+	std::string rootEnglish;
+	std::string prepositionTobair;
+	std::string prepositionEnglish;
+	std::vector<std::string> prefixesTobair;
+	std::vector<std::string> prefixesEnglish;
+	std::vector<std::string> suffixesTobair;
+	std::vector<std::string> suffixesEnglish;
+	std::string info[3];
+};
+
 class Dictionary : private Poster {
 public:
 	Dictionary& summon() {
@@ -30,6 +54,8 @@ public:
 	int searchEnglish(std::string english, WordPair* pairs, int numResults) const;
 	int searchTobair(std::string tobair, WordPair* pairs, int numResults) const;
 
+	Grammar translate(std::string tobair) const;
+
 public:
 	std::vector<std::string> pronouns;// Tobair
 	std::vector<std::string> questionWords;// Tobair
@@ -43,10 +69,18 @@ private:
 	int getEnglishScore(std::string a, std::string b) const;
 	std::array<std::string, 3> getConsonants(std::string t) const;
 
+	std::string stripPrep(std::string tobair, Grammar* g) const; 
+	std::string stripNoun(std::string tobair, Grammar* g) const;
+	std::string stripVerb(std::string tobair, Grammar* g) const;
+	std::string takeOffConsonant(std::string* tobair) const;
+	std::string takeOffVowel(std::string* tobair) const;
+	void translateWithoutPronoun(std::string tobair, Grammar& g) const;
+
 private:
 	Dictionary();
 
-	int maxPrepLength = 0;
+	int shortestPrep = 3;
+	int longestPrep = 0;
 
 	std::map<std::string, std::string> englishTobairMap;
 	std::map<std::string, std::string> tobairEnglishMap;
