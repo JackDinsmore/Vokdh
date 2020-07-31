@@ -93,6 +93,29 @@ void Dictionary::addPreposition(WordPair word) {
 	longestPrep = max(longestPrep, word.first.size());
 	tobairEnglishMapPrepositions.insert(word);
 	englishTobairMapPrepositions.insert({ word.second, word.first });
+
+	std::string adv = word.first;
+	if (adv.substr(adv.size() - 1) == "a") {
+		adv += "i";
+		tobairEnglishMapShortenedPrepositions.insert({ word.first.substr(0, word.first.size() - 1), word.second });
+	}
+	else if (adv.substr(adv.size() - 1) == "e") {
+		adv += "e";
+		tobairEnglishMapShortenedPrepositions.insert({ word.first.substr(0, word.first.size() - 1), word.second });
+	}
+	else if (adv.substr(adv.size() - 1) == "o") {
+		adv += "i";
+		tobairEnglishMapShortenedPrepositions.insert({ word.first.substr(0, word.first.size() - 1), word.second });
+	}
+	else if (adv.substr(adv.size() - 1) == "u") {
+		adv = adv.substr(0, adv.size() - 1) + "oui";
+		tobairEnglishMapShortenedPrepositions.insert({ word.first.substr(0, word.first.size() - 1), word.second });
+	}
+	else {
+		adv += "s";
+		tobairEnglishMapShortenedPrepositions.insert({ word.first, word.second });
+	}
+	adverbialPrepositionTobairToEnglishMap.insert({ adv, word.second });
 }
 
 std::string Dictionary::findEnglish(std::string tobair) const {
@@ -348,39 +371,66 @@ Grammar Dictionary::translate(std::string tobair) const {
 	});
 
 	Grammar noPro;
-	translateWithoutPronoun(tobair, noPro);
-	if (noPro.rootEnglish != "?" && noPro.pos != PART_OF_SPEECH::NONE) {
-		return noPro;
-	}
+	if (translateShort(tobair, noPro)) { return noPro; }
+	if (translateNounAdj(tobair, noPro)) { return noPro; }
+	if (translateVerb(tobair, noPro)) { return noPro; }
+	if (translatePlain(tobair, noPro)) { return noPro; }
+	if (translateBe(tobair, noPro)) { return noPro; }
+
 	Grammar pro;
-	translateWithoutPronoun(stripPrep(tobair, &pro), pro);
+	std::string withoutPrep = stripFullPrep(tobair, &pro);
+	if (withoutPrep != tobair) {
+		if (translateShort(withoutPrep, pro)) { return pro; }
+		if (translateNounAdj(withoutPrep, pro)) { return pro; }
+		if (translatePlain(withoutPrep, pro)) { return pro; }
+		if (translateBe(withoutPrep, pro)) { return pro; }
+	}
+	withoutPrep = stripShortPrep(tobair, &pro);
+	if (withoutPrep != tobair) {
+		if (translateShort(withoutPrep, pro)) { return pro; }
+		if (translateVerb(withoutPrep, pro)) { return pro; }
+		if (translatePlain(withoutPrep, pro)) { return pro; }
+	}
+	// Error
+	pro.pos = PART_OF_SPEECH::NONE;
+	pro.rootTobair = tobair;
+	pro.rootEnglish = "?";
 	return pro;
 }
 
-void Dictionary::translateWithoutPronoun(std::string tobair, Grammar& g) const {
+bool Dictionary::translateShort(std::string tobair, Grammar& g) const {
 	auto pIndex = std::find(pronouns.begin(), pronouns.end(), tobair);
 	auto qIndex = std::find(questionWords.begin(), questionWords.end(), tobair);
 	auto sIndex = std::find(shortWords.begin(), shortWords.end(), tobair);
+	auto aIndex = adverbialPrepositionTobairToEnglishMap.find(tobair);
 	if (pIndex != pronouns.end()) {
 		g.pos = PART_OF_SPEECH::PRONOUN;
 		g.rootTobair = tobair;
 		g.rootEnglish = findEnglish(*pIndex);
-		return;
+		return true;
 	}
 	else if (qIndex != questionWords.end()) {
 		g.pos = PART_OF_SPEECH::PRONOUN;
 		g.rootTobair = tobair;
 		g.rootEnglish = findEnglish(*qIndex);
-		return;
+		return true;
 	}
 	else if (sIndex != shortWords.end()) {
 		g.pos = PART_OF_SPEECH::PRONOUN;
 		g.rootTobair = tobair;
 		g.rootEnglish = findEnglish(*sIndex);
-		return;
+		return true;
 	}
-		
-	// Noun or adjective:
+	else if (aIndex != adverbialPrepositionTobairToEnglishMap.end()) {
+		g.pos = PART_OF_SPEECH::ADVERB;
+		g.rootTobair = aIndex->first;
+		g.rootEnglish = aIndex->second;
+		return true;
+	}
+	return false;
+}
+
+bool Dictionary::translateNounAdj(std::string tobair, Grammar& g) const {
 	std::string nounStrip, verbStrip, consonant, vowel;
 	nounStrip = stripNoun(tobair, &g);
 	consonant = takeOffConsonant(&nounStrip);
@@ -395,7 +445,7 @@ void Dictionary::translateWithoutPronoun(std::string tobair, Grammar& g) const {
 			g.pos = PART_OF_SPEECH::ADJ;
 		}
 		else {
-			goto Verb;
+			return false;
 		}
 		if (vowel == "e" || vowel == "ee") { g.info[0] = "agent"; }
 		if (vowel == "a" || vowel == "ai") { g.info[0] = "result"; }
@@ -413,18 +463,18 @@ void Dictionary::translateWithoutPronoun(std::string tobair, Grammar& g) const {
 			else if (vowel == "ai") { g.info[1] = "idea"; }
 			else if (vowel == "oi") { g.info[1] = "time"; }
 			else {
-				goto Verb;
+				return false;
 			}
 
 			consonant = takeOffConsonant(&nounStrip);
 			if (!consonant.empty()) {
 				wordConsonants[2] = consonant;
-				vowel = takeOffVowel(&nounStrip); 
+				vowel = takeOffVowel(&nounStrip);
 				if (vowel == "i" || vowel == " ") { g.info[2] = "sing"; }
 				else if (vowel == "ee") { g.info[2] = "pau"; }
 				else if (vowel == "ai" || vowel == "") { g.info[2] = "pl"; }
 				else {
-					goto Verb;
+					return false;
 				}
 
 				g.rootTobair = wordConsonants[0] + " " + wordConsonants[1] + " " + wordConsonants[2];
@@ -468,37 +518,41 @@ void Dictionary::translateWithoutPronoun(std::string tobair, Grammar& g) const {
 						}
 					}
 					if (!nounStrip.empty()) {
-						goto Plain;
+						return false;
 					}
 				}
 
-				return;
+				return true;
 			}
 			else {
-				goto Plain;
+				return false;
 			}
 		}
 		else {
-			goto Plain;
+			return false;
 		}
 	}
+	return false;
+}
 
-Verb:
-	verbStrip = stripVerb(tobair, &g);
-	vowel = takeOffVowel(&verbStrip);
+bool Dictionary::translateVerb(std::string tobair, Grammar& g) const {
+	// Must be followed by no prep or a short one
+
+	std::string verbStrip = stripVerb(tobair, &g);
+	std::string vowel = takeOffVowel(&verbStrip);
 	if (!vowel.empty()) {
 		g.pos = PART_OF_SPEECH::VERB;
 		std::string wordConsonants[3];
 
-		consonant = takeOffConsonant(&verbStrip);
-		if (consonant.empty()) { goto Plain; }
+		std::string consonant = takeOffConsonant(&verbStrip);
+		if (consonant.empty()) { return false; }
 		wordConsonants[0] = consonant;
 
 		if (vowel == "a") { g.info[0] = "past"; }
 		else if (vowel == "e") { g.info[0] = "present"; }
 		else if (vowel == "oi") { g.info[0] = "future"; }
 		else {
-			goto Plain;
+			return false;
 		}
 
 
@@ -514,7 +568,7 @@ Verb:
 			else if (vowel == "i") { g.info[1] = "res"; }
 			else if (vowel == "o") { g.info[1] = "indir"; }
 			else {
-				goto Plain;
+				return false;
 			}
 
 			vowel = takeOffVowel(&verbStrip);
@@ -525,7 +579,7 @@ Verb:
 				else if (vowel == "o") { g.info[2] = "pass"; }
 				else if (vowel == "ai") { g.info[2] = "ref"; }
 				else {
-					goto Plain;
+					return false;
 				}
 
 				g.rootTobair = wordConsonants[0] + " " + wordConsonants[1] + " " + wordConsonants[2];
@@ -547,44 +601,45 @@ Verb:
 						g.suffixesTobair.push_back("- time");
 					}
 					else {
-						goto Plain;
+						return false;
 					}
 				}
 
-				return;
+				return true;
 			}
 			else {
-				goto Plain;
+				return false;
 			}
 		}
 		else {
-			goto Plain;
+			return false;
 		}
 	}
+	return false;
+}
 
-Plain:
+bool Dictionary::translatePlain(std::string tobair, Grammar& g) const {
 	std::string eng = findEnglish(tobair);
 	if (!eng.empty()) {
 		g.pos = PART_OF_SPEECH::PROPER;
 		g.rootTobair = tobair;
 		g.rootEnglish = eng;
 		g.info[0] = ""; g.info[1] = ""; g.info[2] = "";
-		return;
+		return true;
 	}
-	else {
-		goto Be;
-	}
+	return false;
+}
 
-Be:
-	verbStrip = stripVerb(tobair, &g);
-	vowel = takeOffVowel(&verbStrip);
+bool Dictionary::translateBe(std::string tobair, Grammar& g) const {
+	std::string verbStrip = stripVerb(tobair, &g);
+	std::string vowel = takeOffVowel(&verbStrip);
 	if (!vowel.empty()) {
 		g.pos = PART_OF_SPEECH::VERB;
 		if (vowel == "a") { g.info[0] = "past"; }
 		else if (vowel == "e") { g.info[0] = "present"; }
 		else if (vowel == "oi") { g.info[0] = "future"; }
 		else {
-			goto Error;
+			return false;
 		}
 		if (takeOffConsonant(&verbStrip) == "f") {
 			vowel = takeOffVowel(&verbStrip);
@@ -596,7 +651,7 @@ Be:
 			else if (vowel == "i") { g.info[1] = "res"; }
 			else if (vowel == "o") { g.info[1] = "indir"; }
 			else {
-				goto Error;
+				return false;
 			}
 
 			g.rootTobair = "f (b r)";
@@ -617,32 +672,38 @@ Be:
 					g.suffixesTobair.push_back("- time");
 				}
 				else {
-					goto Error;
+					return false;
 				}
 			}
 
-			return;
+			return true;
 		}
 		else {
-			goto Error;
+			return false;
 		}
 	}
 	else {
-		goto Error;
+		return false;
 	}
-
-	
-Error:
-	g.pos = PART_OF_SPEECH::NONE;
-	g.rootTobair = tobair;
-	g.rootEnglish = "?";
-	return;
+	return false;
 }
 
-std::string Dictionary::stripPrep(std::string tobair, Grammar* g) const {
+std::string Dictionary::stripFullPrep(std::string tobair, Grammar* g) const {
 	for (int i = shortestPrep; i <= longestPrep; i++) {
 		auto p = tobairEnglishMapPrepositions.find(tobair.substr(0, i));
 		if (p != tobairEnglishMapPrepositions.end()) {
+			g->prepositionTobair = tobair.substr(0, i);
+			g->prepositionEnglish = p->second;
+			return tobair.substr(i);
+		}
+	}
+	return tobair;
+}
+
+std::string Dictionary::stripShortPrep(std::string tobair, Grammar* g) const {
+	for (int i = shortestPrep - 1; i <= longestPrep - 1; i++) {
+		auto p = tobairEnglishMapShortenedPrepositions.find(tobair.substr(0, i));
+		if (p != tobairEnglishMapShortenedPrepositions.end()) {
 			g->prepositionTobair = tobair.substr(0, i);
 			g->prepositionEnglish = p->second;
 			return tobair.substr(i);

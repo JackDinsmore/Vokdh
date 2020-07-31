@@ -350,10 +350,11 @@ bool TranslationView::handleKeyPress(int key) {
 			}
 			else if (cursorPosY / 2 > 0) {
 				textTree[cursorPosY - 2].text() += textTree[cursorPosY].text();
-				cursorPosX = textTree[cursorPosY].text().size() - 2;
-				textTree[cursorPosY - 2 + (cursorPosY % 2 == 0) ? +1 : -1].text() += textTree[cursorPosY - 2 + (cursorPosY % 2 == 0) ? +1 : -1].text();
+				int otherIndexAddition = (cursorPosY % 2 == 0) ? +1 : -1;
+				textTree[cursorPosY - 2 + otherIndexAddition].text() += textTree[cursorPosY + otherIndexAddition].text();
 				textTree.remove(cursorPosY);
 				cursorPosY -= 2;
+				cursorPosX = textTree[cursorPosY].text().size();
 			}
 		}
 		else {
@@ -481,7 +482,7 @@ void TranslationView::indexToScreen(int indexX, int indexY, int* screenX, int* s
 	if (screenX) {
 		std::wstring wtext;
 		if (indexX != 0 && text[indexX - 1] == ' ') {
-			wtext = std::wstring(text.begin(), text.end()).substr(0, indexX - 1) + L"_";
+			wtext = std::wstring(text.begin(), text.end()).substr(0, indexX - 1) + L"t";
 		}
 		else {
 			wtext = std::wstring(text.begin(), text.end()).substr(0, indexX);
@@ -895,11 +896,13 @@ void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
 	case PART_OF_SPEECH::ADJ:
 		firstLine = L"adj."; break;
 	case PART_OF_SPEECH::PROPER:
-		firstLine = L"Proper noun"; break;
+		firstLine = L"proper n."; break;
 	case PART_OF_SPEECH::PRONOUN:
 		firstLine = L"pron."; break;
 	case PART_OF_SPEECH::SHORT:
 		firstLine = L"short"; break;
+	case PART_OF_SPEECH::ADVERB:
+		firstLine = L"adv."; break;
 	}
 
 	// Second line

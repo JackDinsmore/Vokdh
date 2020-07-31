@@ -22,6 +22,7 @@ enum class PART_OF_SPEECH {
 	PROPER,
 	PRONOUN,
 	SHORT,
+	ADVERB,
 };
 
 struct Grammar {
@@ -62,19 +63,26 @@ public:
 	std::vector<std::string> shortWords;// Tobair
 
 	std::map<std::string, std::string> englishTobairMapPrepositions;
-	std::map<std::string, std::string> tobairEnglishMapPrepositions;
+	std::map<std::string, std::string> tobairEnglishMapPrepositions; 
+	std::map<std::string, std::string> tobairEnglishMapShortenedPrepositions;
 
 private:
 	int getTobairScore(std::array<std::string, 3> a, std::array<std::string, 3> b) const;
 	int getEnglishScore(std::string a, std::string b) const;
 	std::array<std::string, 3> getConsonants(std::string t) const;
 
-	std::string stripPrep(std::string tobair, Grammar* g) const; 
+	std::string stripFullPrep(std::string tobair, Grammar* g) const;
+	std::string stripShortPrep(std::string tobair, Grammar* g) const;
 	std::string stripNoun(std::string tobair, Grammar* g) const;
 	std::string stripVerb(std::string tobair, Grammar* g) const;
 	std::string takeOffConsonant(std::string* tobair) const;
 	std::string takeOffVowel(std::string* tobair) const;
-	void translateWithoutPronoun(std::string tobair, Grammar& g) const;
+
+	bool translateShort(std::string tobair, Grammar& g) const;
+	bool translateVerb(std::string tobair, Grammar& g) const;
+	bool translateNounAdj(std::string tobair, Grammar& g) const;
+	bool translatePlain(std::string tobair, Grammar& g) const;
+	bool translateBe(std::string tobair, Grammar& g) const;
 
 private:
 	Dictionary();
@@ -86,6 +94,7 @@ private:
 	std::map<std::string, std::string> tobairEnglishMap;
 	std::map<std::string, std::array<std::string, 3>> englishTobairMapConsonants;
 	std::map<std::array<std::string, 3>, std::string> tobairEnglishMapConsonants;
+	std::map<std::string, std::string> adverbialPrepositionTobairToEnglishMap;
 
 	const std::filesystem::path dictPath = exePath / "dictionary.txt";
 };

@@ -37,7 +37,7 @@ std::vector<std::wstring> grammarText = {
 	"Negate meaning\t\tsh\n"
 	"Prepositions\n\n"
 	"Notes:\n"
-	"- Only use the active ending for Ind. verbs\n"
+	"- Only use the active ending for Ind. verbs or when the last consonant is '\n"
 	"- The Intro mood is for since or if clauses, etc.\n"
 	"- Use the Ind. vowel near ' or with double letters",
 

@@ -8,10 +8,13 @@
 
 Vokdh::Vokdh(std::string commandLine) : loader(textTree), viewHandler(textTree) {
 	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
-	if (commandLine != "" && loader.loadFile(commandLine)) {
-
+	if (commandLine != "") {
+		openFilePath = commandLine.substr(1).substr(0, commandLine.size() - 2);
 	}
 	else {
+		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdh/Beowulf.vkd";
+	}
+	if (!loader.loadFile(openFilePath)) {
 		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdh/Beowulf.vkd";
 		loader.loadFile(openFilePath);
 	}
