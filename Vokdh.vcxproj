@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="constants.cpp" />
     <ClCompile Include="dictionary.cpp" />
     <ClCompile Include="dictionaryView.cpp" />
     <ClCompile Include="grammarView.cpp" />
@@ -161,11 +162,13 @@
     <ClCompile Include="shortWordsView.cpp" />
     <ClCompile Include="style.cpp" />
     <ClCompile Include="text.cpp" />
+    <ClCompile Include="textView.cpp" />
     <ClCompile Include="translationView.cpp" />
     <ClCompile Include="view.cpp" />
     <ClCompile Include="vokdh.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="allViews.h" />
     <ClInclude Include="constants.h" />
     <ClInclude Include="d2tools.h" />
     <ClInclude Include="dictionary.h" />
@@ -178,6 +181,7 @@
     <ClInclude Include="shortWordsView.h" />
     <ClInclude Include="style.h" />
     <ClInclude Include="text.h" />
+    <ClInclude Include="textView.h" />
     <ClInclude Include="translationView.h" />
     <ClInclude Include="view.h" />
     <ClInclude Include="vokdh.h" />
@@ -187,6 +191,11 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />
+    <Image Include="letters.bmp" />
+    <Image Include="letters.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="To do.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

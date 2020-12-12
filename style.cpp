@@ -33,7 +33,7 @@ StyleNode::operator D2D1::ColorF() const {
 StyleMap::StyleMap() {
 	std::ifstream styleFile;
 	std::string line;
-	styleFile.open(exePath / STYLE_FILE);
+	styleFile.open(exePath.parent_path().parent_path() / STYLE_FILE);
 	std::string header = "";
 
 	if (styleFile.is_open()) {
@@ -85,7 +85,7 @@ StyleMap::StyleMap() {
 	}
 	else {
 		// Style file not found.
-		postMessage(MESSAGE_TYPE::M_WARNING, "Style file not found at " + (exePath / STYLE_FILE).generic_string());
+		postMessage(MESSAGE_TYPE::M_ERROR, "Style file not found at " + (exePath / STYLE_FILE).generic_string());
 	}
 }
 

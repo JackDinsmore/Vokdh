@@ -12,7 +12,7 @@ public:
 	void resize(int width, int height) { screenWidth = width, screenHeight = height; }
 
 private:
-	bool extraCreateDeviceIndependentResources() override;
+	bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
 	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
 	void extraDiscardDeviceDependentResources() override;
 	void handleScroll(int scrollTimes) override;

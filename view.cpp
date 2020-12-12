@@ -1,11 +1,48 @@
 #include "view.h"
+#include "allViews.h"
 
-#include "helpView.h"
-#include "translationView.h"
-#include "dictionaryView.h"
-#include "grammarView.h"
-#include "prepositionsView.h"
-#include "shortWordsView.h"
+bool View::createDeviceIndependentResources(HINSTANCE hInst) {
+	HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(writeFactory), reinterpret_cast<IUnknown**>(&writeFactory));
+	if (FAILED(hr)) {
+		postMessage(MESSAGE_TYPE::M_TERMINATE, "Direct write factory creation failed.");
+		return false;
+	}
+
+	return extraCreateDeviceIndependentResources(hInst);
+}
+
+bool View::createDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
+	styleMap = styleMap.summon();
+	bgColor = (D2D1::ColorF)styleMap["colors-translation"]["background"];
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["foreground"], &foreBrush);
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["background"], &backBrush);
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["english"], &englishBrush);
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["tobair"], &tobairBrush);
+	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["dark-background"], &darkBGBrush);
+	return extraCreateDeviceDependentResources(renderTarget);
+}
+
+void View::discardDeviceDependentResources() {
+	SafeRelease(&darkBGBrush);
+	SafeRelease(&foreBrush);
+	SafeRelease(&englishBrush);
+	SafeRelease(&tobairBrush);
+	SafeRelease(&backBrush);
+	extraDiscardDeviceDependentResources();
+}
+
+void View::draw(ID2D1HwndRenderTarget* renderTarget) {
+	if (stageResize) {
+		resize(renderTarget->GetSize().width, renderTarget->GetSize().height);
+	}
+	extraDraw(renderTarget);
+}
+
+void View::open() {
+
+}
+
+
 
 
 ViewHandler::ViewHandler(TextTree& textTree) {
@@ -15,12 +52,23 @@ ViewHandler::ViewHandler(TextTree& textTree) {
 	grammarView = new GrammarView(textTree);
 	prepositionsView = new PrepositionsView(textTree);
 	shortWordsView = new ShortWordsView(textTree);
+	textView = new TextView(textTree);
 	switchTo(VIEW_TYPE::TRANSLATION);
 }
 
 ViewHandler::~ViewHandler() {
 	delete translationView;
 	delete helpView;
+}
+
+void ViewHandler::createDeviceIndependentResources(HINSTANCE hInst) {
+	translationView->createDeviceIndependentResources(hInst);
+	helpView->createDeviceIndependentResources(hInst);
+	dictionaryView->createDeviceIndependentResources(hInst);
+	grammarView->createDeviceIndependentResources(hInst);
+	prepositionsView->createDeviceIndependentResources(hInst);
+	shortWordsView->createDeviceIndependentResources(hInst);
+	textView->createDeviceIndependentResources(hInst);
 }
 
 View* ViewHandler::view() {
@@ -37,6 +85,8 @@ View* ViewHandler::view() {
 		return prepositionsView;
 	case VIEW_TYPE::SHORT_WORDS:
 		return shortWordsView;
+	case VIEW_TYPE::TEXT:
+		return textView;
 	}
 	return nullptr;
 }
@@ -45,6 +95,10 @@ bool ViewHandler::handleControlKeyPress(int key) {
 	switch (key) {
 	case 'D':
 		switchTo(VIEW_TYPE::DICTIONARY);
+		// Dictionary
+		return true;
+	case 'T':
+		switchTo(VIEW_TYPE::TEXT);
 		// Dictionary
 		return true;
 	case 'G':
@@ -92,7 +146,6 @@ void ViewHandler::switchTo(VIEW_TYPE vt) {
 	}
 	viewType = vt;
 	view()->resize(width, height);
-	createDeviceIndependentResources();
 }
 
 void ViewHandler::draw(ID2D1HwndRenderTarget* rt) {
@@ -105,47 +158,4 @@ void ViewHandler::draw(ID2D1HwndRenderTarget* rt) {
 	}
 
 	view()->draw(rt);
-}
-
-
-
-bool View::createDeviceIndependentResources() {
-	HRESULT hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(writeFactory), reinterpret_cast<IUnknown**>(&writeFactory));
-	if (FAILED(hr)) {
-		postMessage(MESSAGE_TYPE::M_TERMINATE, "Direct write factory creation failed.");
-		return false;
-	}
-
-	return extraCreateDeviceIndependentResources();
-}
-
-bool View::createDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
-	styleMap = styleMap.summon();
-	bgColor = (D2D1::ColorF)styleMap["colors-translation"]["background"];
-	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["foreground"], &foreBrush);
-	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["background"], &backBrush);
-	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["english"], &englishBrush);
-	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["tobair"], &tobairBrush);
-	renderTarget->CreateSolidColorBrush((D2D1::ColorF)styleMap["colors-translation"]["dark-background"], &darkBGBrush);
-	return extraCreateDeviceDependentResources(renderTarget);
-}
-
-void View::discardDeviceDependentResources() {
-	SafeRelease(&darkBGBrush);
-	SafeRelease(&foreBrush);
-	SafeRelease(&englishBrush);
-	SafeRelease(&tobairBrush);
-	SafeRelease(&backBrush);
-	extraDiscardDeviceDependentResources();
-}
-
-void View::draw(ID2D1HwndRenderTarget* renderTarget) {
-	if (stageResize) {
-		resize(renderTarget->GetSize().width, renderTarget->GetSize().height);
-	}
-	extraDraw(renderTarget);
-}
-
-void View::open() {
-
 }

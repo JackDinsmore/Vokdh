@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <d2d1.h>
+#include <chrono>
 
 #include "vokdh.h"
 #include "constants.h"
@@ -21,13 +22,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR pCmdLine, int nCmdShow) 
 	// Run the message loop.
 
 	MSG msg = { };
-	while(!vokdh.quit) {
-		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
+	auto last = std::chrono::system_clock::now();
+	auto now = last;
+	while (!vokdh.quit) {
+		now = std::chrono::system_clock::now();
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last).count() >= FRAMERATE) {// Lock at 40 fps
+			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 
-		vokdh.update();
+			vokdh.update();
+		}
 	}
 
 	return 0;

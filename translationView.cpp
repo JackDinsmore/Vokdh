@@ -1,6 +1,9 @@
 #include "translationView.h"
 #include <sstream>
 
+#define screenToIndexKeepParity(a, b, c, d) (screenToIndex(a, b, c, d, true, false))
+#define screenToIndexAccurate(a, b, c, d) (screenToIndex(a, b, c, d, false, true))
+
 
 std::vector<std::string> headers = { "h1", "h2", "h3", "p" };
 
@@ -14,7 +17,7 @@ void TranslationView::extraDiscardDeviceDependentResources() {
 	SafeRelease(&selectBrush);
 }
 
-bool TranslationView::extraCreateDeviceIndependentResources() {
+bool TranslationView::extraCreateDeviceIndependentResources(HINSTANCE hInst) {
 	std::string englishFontName = (std::string)styleMap["fonts"]["english"];
 	if (englishFontName.empty()) { englishFontName = "Calibri"; }
 
@@ -234,7 +237,7 @@ bool TranslationView::handleControlKeyPress(int key) {
 		}
 		return true;
 	case VK_RETURN:
-		// Cut the selected text into a new node.
+		breakNode();
 		return true;
 	case 'C':
 		if (!selection) { return true; }
@@ -270,6 +273,7 @@ bool TranslationView::handleKeyPress(int key) {
 		}
 		if (key == VK_TAB) {
 			// Decrement header
+			textTree.changed = true;
 			line = textTree[cursorPosY];
 			index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
 			line.type() = index == headers.size() - 1 ? headers[0] : headers[index + 1];
@@ -282,6 +286,7 @@ bool TranslationView::handleKeyPress(int key) {
 	switch (key) {
 	case VK_TAB:
 		// Increment header
+		textTree.changed = true;
 		line = textTree[cursorPosY];
 		index = std::find(headers.begin(), headers.end(), line.type()) - headers.begin();
 		line.type() = index == 0 ? headers[headers.size() - 1] : headers[index - 1];
@@ -325,6 +330,7 @@ bool TranslationView::handleKeyPress(int key) {
 		}
 		return true;
 	case VK_RETURN:
+		textTree.changed = true;
 		if (selection) { deleteSelection(); }
 		line = textTree[cursorPosY];
 		textTree.insertLine(cursorPosY);
@@ -337,6 +343,7 @@ bool TranslationView::handleKeyPress(int key) {
 		cursorPosX = 0;
 		return true;
 	case VK_BACK:
+		textTree.changed = true;
 		if (!selection) {
 			if (cursorPosX != 0) {
 				TextCounter line = textTree[cursorPosY];
@@ -362,6 +369,7 @@ bool TranslationView::handleKeyPress(int key) {
 		}
 		return true;
 	case VK_DELETE:
+		textTree.changed = true;
 		if (!selection) {
 			if (cursorPosX != textTree[cursorPosY].text().size()) {
 				TextCounter line = textTree[cursorPosY];
@@ -383,6 +391,7 @@ bool TranslationView::handleKeyPress(int key) {
 	}
 	if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90) || key == VK_OEM_PERIOD ||
 		key == VK_OEM_COMMA || key == VK_OEM_2 || key == VK_OEM_7 || key == VK_OEM_1) {
+		textTree.changed = true;
 		if (selection) { deleteSelection(); }
 		std::string letter = std::string(1, key);
 		if (GetKeyState(VK_SHIFT) & 0x8000) {
@@ -499,7 +508,7 @@ void TranslationView::indexToScreen(int indexX, int indexY, int* screenX, int* s
 
 }
 
-void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* indexY, bool keepParity) const {
+void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* indexY, bool keepParity, bool accurate) const {
 	if (indexY && indexX) {
 		TextCounter line = textTree[max(int(scrollAmount), 0)];
 		int parity = max(int(scrollAmount), 0) % 2;
@@ -566,11 +575,11 @@ void TranslationView::screenToIndex(int screenX, int screenY, int* indexX, int* 
 		}
 
 		// Do some stuff
-		*indexX = getIndexFromLine(*indexY, screenX);
+		*indexX = getIndexFromLine(*indexY, screenX, accurate=accurate);
 	}
 }
 
-int TranslationView::getIndexFromLine(int cursorPosY, int screenX) const {
+int TranslationView::getIndexFromLine(int cursorPosY, int screenX, bool accurate) const {
 	TextCounter line = textTree[cursorPosY];
 	std::wstring wtext = std::wstring(line.text().begin(), line.text().end());
 	IDWriteTextFormat* textFormat = getTextFormat(line.type());
@@ -581,6 +590,7 @@ int TranslationView::getIndexFromLine(int cursorPosY, int screenX) const {
 	writeFactory->CreateTextLayout(wtext.c_str(), wtext.size(), textFormat, screenWidth, screenHeight, &layout);
 	layout->GetMetrics(&metrics);
 	if (metrics.width < screenX) {
+		if (accurate) { return -1; }
 		return wtext.size();
 	}
 	SafeRelease(&layout);
@@ -645,6 +655,27 @@ void TranslationView::extraHandleLeftClick(int posx, int posy) {
 	}
 }
 
+void TranslationView::extraHandleLeftDoubleClick(int posx, int posy) {
+	selectedWhileClicking = true;
+	if (posx > TEXT_BUFFER + outlinePos) {
+		int mouseX, mouseY;
+		screenToIndex(posx - TEXT_BUFFER - outlinePos, posy - TEXT_BUFFER, &mouseX, &mouseY);
+		std::string line = textTree[mouseY].text();
+		postMessage(MESSAGE_TYPE::M_DEBUG, line);
+		postMessage(MESSAGE_TYPE::M_DEBUG, "Hi");
+		int right, left;
+		for (right = mouseX; right < line.size() - 1 && !terminatesWord(line[right]); right++) {
+			int debug = 0;
+		}
+		for (left = mouseX; left >= 0 && !terminatesWord(line[left]); left--);
+		selectionCursorX = left+1;
+		selectionCursorY = mouseY;
+		cursorPosX = right;
+		cursorPosY = mouseY;
+		selection = true;
+	}
+}
+
 void TranslationView::handleLeftUnclick(int posx, int posy) {
 	if (!selectedWhileClicking) {
 		selection = false;
@@ -658,7 +689,7 @@ void TranslationView::handleLeftUnclick(int posx, int posy) {
 
 void TranslationView::handleDrag(int posx, int posy) {
 	if (posx < 0 || posy < 0) { return; }
-	screenToIndex(posx - TEXT_BUFFER - outlinePos, posy - TEXT_BUFFER, &cursorPosX, &cursorPosY, true);
+	screenToIndexKeepParity(posx - TEXT_BUFFER - outlinePos, posy - TEXT_BUFFER, &cursorPosX, &cursorPosY);
 	if (selectionCursorX != cursorPosX || selectionCursorY != cursorPosY) {
 		selection = true;
 		selectedWhileClicking = true;
@@ -851,7 +882,11 @@ void TranslationView::handleScroll(int scrollTimes) {
 
 void TranslationView::handleMouseMotion(int x, int y) {
 	int newHoverIndexX, newHoverIndexY;
-	screenToIndex(x - (outlinePos + TEXT_BUFFER), y, &newHoverIndexX, &newHoverIndexY);
+	screenToIndexAccurate(x - (outlinePos + TEXT_BUFFER), y, &newHoverIndexX, &newHoverIndexY);
+	if (newHoverIndexX < 0) {
+		hoverBoxOpen = false;
+		return;
+	}
 	if (newHoverIndexY % 2 == 1) {
 		std::string line = textTree[newHoverIndexY].text();
 		int startIndex = line.substr(0, newHoverIndexX).find_last_of(' ');
@@ -872,17 +907,21 @@ void TranslationView::handleMouseMotion(int x, int y) {
 		}
 		newHoverIndexX = startIndex;
 		if (newHoverIndexX != hoverIndexX || newHoverIndexY != hoverIndexY) {
-			grammar = dictionary.translate(hoverWord);
+			grammar = dictionary->translate(hoverWord);
 			hoverIndexX = newHoverIndexX;
 			hoverIndexY = newHoverIndexY;
 			indexToScreen(startIndex, hoverIndexY, &hoverScreenX, &hoverScreenY);
 			hoverScreenX += outlinePos + TEXT_BUFFER;
 			hoverScreenY += getLineHeight(textTree[newHoverIndexY].type());
 		}
+		hoverBoxOpen = true;
+		return;
 	}
+	hoverBoxOpen = false;
 }
 
 void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
+	if (!hoverBoxOpen) { return; }
 	std::wstring firstLine, secondLine, thirdLine, fourthLine;
 
 	// First line
@@ -932,9 +971,15 @@ void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
 	thirdLine = thirdLine.substr(0, thirdLine.size() - 1);
 
 	// Fourth line
-	fourthLine = std::wstring(grammar.info[0].begin(), grammar.info[0].end()) + L", " +
-		std::wstring(grammar.info[1].begin(), grammar.info[1].end()) + L", " +
-		std::wstring(grammar.info[2].begin(), grammar.info[2].end());
+	fourthLine = L"";
+	for (int i = 0; i < 3; i++) {
+		if (!grammar.info[i].empty()) {
+			if (i != 0) {
+				fourthLine += L", ";
+			}
+			fourthLine += std::wstring(grammar.info[i].begin(), grammar.info[i].end());
+		}
+	}
 
 	// Get width of box
 	FLOAT width = 0;
@@ -963,7 +1008,9 @@ void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
 	SafeRelease(&layout);
 
 
-	D2D1_RECT_F rect = { (FLOAT)hoverScreenX, (FLOAT)hoverScreenY, (FLOAT)hoverScreenX + width + 2 * TEXT_BUFFER, (FLOAT)hoverScreenY + 80 + TEXT_BUFFER };
+	int nLines = 3;
+	if (!fourthLine.empty()) { nLines++; }
+	D2D1_RECT_F rect = { (FLOAT)hoverScreenX, (FLOAT)hoverScreenY, (FLOAT)hoverScreenX + width + 2 * TEXT_BUFFER, (FLOAT)hoverScreenY + 20*nLines + TEXT_BUFFER };
 	rt->FillRectangle(rect, darkBGBrush);
 	rt->DrawRectangle(rect, tobairBrush);
 	rect.left += TEXT_BUFFER;
@@ -977,4 +1024,59 @@ void TranslationView::drawHover(ID2D1HwndRenderTarget* rt) const {
 	rect.top += 20;
 	rt->DrawText(fourthLine.c_str(), fourthLine.size(), h3EnglishTextFormat, rect, englishBrush);
 	rect.top += 20;
+}
+
+bool TranslationView::terminatesWord(char letter) const {
+	if ('A' <= letter && 'Z' >= letter) {
+		return false;
+	}
+	if ('0' <= letter && '9' >= letter) {
+		return false;
+	}
+	if ('a' <= letter && 'z' >= letter) {
+		return false;
+	}
+	if (letter == '\'') {
+		return false;
+	}
+	return true;
+}
+
+void TranslationView::breakNode() {
+	// Cut the selected text into a new node.
+	TextCounter counter = textTree[cursorPosY];
+	TextNode* cursorNode = counter.getNode();
+	TextNode* afterNode = new TextNode();
+	afterNode->children = cursorNode->children;
+	cursorNode->children = { afterNode };
+	afterNode->parent = cursorNode;
+	for (TextNode* child : afterNode->children) { child->parent = afterNode; }
+
+	int moveNumber = cursorNode->text.size() - counter.getLineNumber();// Move current line
+	auto beginIt = cursorNode->text.end() - moveNumber;
+	auto moveIt = std::next(beginIt, moveNumber);
+	std::move(beginIt, moveIt, std::back_inserter(afterNode->text));
+	cursorNode->text.erase(beginIt, moveIt);
+	afterNode->type = cursorNode->type;
+
+	// Split cursor line
+	if (cursorPosX != 0) {
+		cursorNode->text.push_back(afterNode->text[0].substr(0, cursorPosX));
+		afterNode->text[0] = afterNode->text[0].substr(cursorPosX);
+	}
+
+	if (counter.getLineNumber() % 2 == 0) {// Cursor is in english
+		if (cursorPosX != 0) {
+			cursorNode->text.push_back("");
+		}
+	}
+	else {// Cursor is in tobair
+		afterNode->text.insert(afterNode->text.begin(), "");
+		if (cursorPosX == 0) {
+			afterNode->text.insert(afterNode->text.begin(), "");
+		}
+	}
+	
+	cursorPosY++;
+	cursorPosX = 0;
 }

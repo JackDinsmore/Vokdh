@@ -1,8 +1,9 @@
 #include "dictionaryView.h"
 #include <sstream>
 #include <stdlib.h>
+#include "constants.h"
 
-const std::array<int, NUM_CONSONANTS> frequencies = { 5, 4, 10, 2, 9, 13, 17, 7, 15, 3, 20, 14, 23, 7, 2, 9, 2, 4, 10, 8, 9 };
+const std::array<int, NUM_CONSONANTS> frequencies = { 5, 4, 10, 2, 9, 13, 17, 7, 15, 3, 20, 14, 23, 7, 9, 4, 10, 8, 9 };
 
 
 DictionaryView::DictionaryView(TextTree& textTree) : View(textTree) {
@@ -22,7 +23,7 @@ void DictionaryView::extraDiscardDeviceDependentResources() {
 	SafeRelease(&redBrush);
 }
 
-bool DictionaryView::extraCreateDeviceIndependentResources() {
+bool DictionaryView::extraCreateDeviceIndependentResources(HINSTANCE hInst) {
 	writeFactory->CreateTextFormat(L"Consolas", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL, 16, L"", &searchTextFormat);
 	return true;
@@ -467,12 +468,12 @@ void DictionaryView::resize(int width, int height) {
 void DictionaryView::getResults() {
 	if (isDefiningNewWord) {
 		if (isDefiningTobair) {
-			isValidTobair = dictionary.findEnglish(text) == "";
+			isValidTobair = dictionary->findEnglish(text) == "";
 		}
 	}
 	else {
-		if (enterEnglish) { actualNumResults = dictionary.searchEnglish(text, results, numResults); }
-		else { actualNumResults = dictionary.searchTobair(text, results, numResults); }
+		if (enterEnglish) { actualNumResults = dictionary->searchEnglish(text, results, numResults); }
+		else { actualNumResults = dictionary->searchTobair(text, results, numResults); }
 	}
 }
 
@@ -492,7 +493,7 @@ void DictionaryView::randomText() {
 			text += consonants[i-1] + " ";
 		}
 		text = text.substr(0, text.size() - 1);
-		failed = !dictionary.findEnglish(text).empty();
+		failed = !dictionary->findEnglish(text).empty();
 	}
 	cursorPos = text.size();
 }
@@ -505,8 +506,8 @@ void DictionaryView::submitWord() {
 	}
 	else {
 		isDefiningNewWord = false;
-		dictionary.addWord({ newTobairWord, text });
-		dictionary.save();
+		dictionary->addWord({ newTobairWord, text });
+		dictionary->save();
 	}
 	text = "";
 	cursorPos = 0;

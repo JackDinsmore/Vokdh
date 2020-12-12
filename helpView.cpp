@@ -13,6 +13,7 @@ void HelpView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 		{L"Grammar", L"Ctrl-G"},
 		{L"Prepositions", L"Ctrl-P"},
 		{L"List of short words", L"Ctrl-W"},
+		{L"Full Text view", L"Ctrl-T"},
 	};
 	for (int i = 0; i < text.size(); i++) {
 		renderTarget->DrawText(text[i].first.c_str(), text[i].first.size(), boldTextFormat,
@@ -23,7 +24,7 @@ void HelpView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 	}
 }
 
-bool HelpView::extraCreateDeviceIndependentResources() {
+bool HelpView::extraCreateDeviceIndependentResources(HINSTANCE hInst) {
 	writeFactory->CreateTextFormat(L"Consolas", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL, 14, L"", &boldTextFormat);
 	writeFactory->CreateTextFormat(L"Consolas", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,

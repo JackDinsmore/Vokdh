@@ -160,7 +160,16 @@ int Dictionary::searchEnglish(std::string english, WordPair* pairs, int numResul
 	int numWordsScored = 0;
 
 	for (auto p = englishTobairMap.begin(); p != englishTobairMap.end(); p++) {
-		int score = getEnglishScore(p->first, english);
+		int score = 0;
+		int lastLoc = 0;
+		int semicolon = 0;
+		do {
+			semicolon = p->first.find(';', semicolon+1);
+			std::string sub = p->first.substr(lastLoc, semicolon - lastLoc);
+			score = max(getEnglishScore(sub, english), score);
+			lastLoc = semicolon;
+		} while (semicolon != -1);
+
 		bool addedScore = false;
 		for (int i = 0; i < min(numWordsScored, numResults - 1); i++) {
 			if (score > scores[i]) {
@@ -366,11 +375,12 @@ void Dictionary::save() const {
 }
 
 Grammar Dictionary::translate(std::string tobair) const {
-	std::for_each(tobair.begin(), tobair.end(), [](char& c) {
-		c = std::tolower(c);
-	});
-
 	Grammar noPro;
+
+	if (translateNumeral(tobair, noPro)) { return noPro; }
+
+	tobair = lowerString(tobair);
+
 	if (translateShort(tobair, noPro)) { return noPro; }
 	if (translateNounAdj(tobair, noPro)) { return noPro; }
 	if (translateVerb(tobair, noPro)) { return noPro; }
@@ -616,6 +626,43 @@ bool Dictionary::translateVerb(std::string tobair, Grammar& g) const {
 		}
 	}
 	return false;
+}
+
+bool Dictionary::translateNumeral(std::string tobair, Grammar& g) const {
+	int decimalLoc = tobair.size();
+	int i = 0;
+	for (char letter : tobair) {
+		if (!(('0' <= letter && letter <= '7') || letter == '.')) {
+			return false;
+		}
+		if (letter == '.') {
+			if (decimalLoc != tobair.size()) {
+				return false;
+			}
+			decimalLoc = i;
+		}
+		i++;
+	}
+
+	float value = 0;
+	for (int i = 0; i < tobair.size(); i++) {
+		if (i == decimalLoc) { continue; }
+		float thisValue = pow(8, decimalLoc - i - 1);
+		if (thisValue < 1) {
+			thisValue *= 8;
+		}
+		value += thisValue * (tobair[i] - '0');
+	}
+	std::string valueText = std::to_string(value);
+	if (decimalLoc == tobair.size()) {
+		valueText = std::to_string(int(value));
+	}
+
+	g.pos = PART_OF_SPEECH::NUMERAL;
+	g.rootTobair = tobair;
+	g.rootEnglish = valueText;
+	g.info[0] = ""; g.info[1] = ""; g.info[2] = "";
+	return true;
 }
 
 bool Dictionary::translatePlain(std::string tobair, Grammar& g) const {

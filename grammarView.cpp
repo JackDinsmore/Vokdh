@@ -27,10 +27,10 @@ std::vector<std::wstring> grammarText = {
 	"Past\t\ta\tInd\t\t-(e)\t(Act)\t\ta\n"
 	"Present\t\te\tImp\t\tai\tPass\t\to\n"
 	"Future\t\toi\tIntro\t\tu\tRef\t\tai\n"
-	"\t\t\tRelative\t\ta\n"
+	"\t\t\tRelative\ta\n"
 	"\t\t\tPurpose\t\toui\n"
 	"\t\t\tResult\t\ti\n"
-	"\t\t\tIndirect\t\to\n\n"
+	"\t\t\tIndirect\to\n\n"
 	"Suffixes:\n"
 	"Imp\t\te\t+time\t\toi\t-time\t\ta\n\n"
 	"Prefixes:\n"
@@ -42,14 +42,20 @@ std::vector<std::wstring> grammarText = {
 	"- Use the Ind. vowel near ' or with double letters",
 
 	L"Order:\n"
-	"- (Introductory words) (Verb adv) (Noun adj adv) (DO)\n"
-	"- (Subordinate clauses). IOs go anywhere after verb\n"
+	"- (Introductory words) (Verb adv) (Noun adj adv) (DO) (Subordinate clauses).\n"
+	"- IOs go anywhere after verb\n"
+	"- Relative pronouns go in their place in the relative clause, not always the beginning\n"
 	"Punctuation:\n"
 	"- Fi Tobair only has periods, punctuation marks, and quotes\n"
 	"Prepositions:\n"
 	"- Fi takes prepositions after it (e.g. fividu)\n"
 	"- To adverbify prepositions, lengthen the last vowel.\n"
-	"- If there is no last vowel, add an s after the preposition."
+	"- If there is no last vowel or it is an i, add an s after the preposition.\n"
+	"Numbers:\n"
+	"- Cardinal numbers use the vowel a\n"
+	"- Ordinal numbers use the vowel ai\n"
+	"- To multiply by 8, add on -sil\n"
+	"- To multiply by 64, add on -sithel."
 };
 std::vector<std::wstring> grammarHeadings = { L"Nouns", L"Verbs", L"General notes"};
 
@@ -63,7 +69,7 @@ void GrammarView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 		screenWidth - SUB_MENU_LR_BUFFER - TEXT_BUFFER, screenHeight - SUB_MENU_TB_BUFFER - TEXT_BUFFER + 20 }, englishBrush);
 }
 
-bool GrammarView::extraCreateDeviceIndependentResources() {
+bool GrammarView::extraCreateDeviceIndependentResources(HINSTANCE hInst) {
 	writeFactory->CreateTextFormat(L"Consolas", NULL, DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL,
 		DWRITE_FONT_STRETCH_NORMAL, 24, L"", &headerFormat);
 	writeFactory->CreateTextFormat(L"Consolas", NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,

@@ -54,6 +54,12 @@
     <ClCompile Include="shortWordsView.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="textView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="constants.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vokdh.h">
@@ -101,6 +107,12 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="textView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="allViews.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Vokdh.rc">
@@ -111,5 +123,14 @@
     <Image Include="icon.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="letters.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="letters.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="To do.txt" />
   </ItemGroup>
 </Project>

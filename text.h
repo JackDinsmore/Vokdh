@@ -12,7 +12,7 @@ struct TextNode {
 	std::string type;
 };
 
-class TextCounter {
+class TextCounter : Poster {
 	friend class TextTree;
 public:
 	TextCounter(TextNode* node, int line) : n(node), line(line) {}
@@ -28,12 +28,27 @@ public:
 	TextCounter operator--(int);
 	bool operator==(const TextCounter tc) const { return n == tc.n && line == tc.line; }
 	bool operator!=(const TextCounter tc) const { return n != tc.n || line != tc.line; }
+	TextNode* getNode() const { return n; }
+	int getLineNumber() const { return line; }
 
 public:
 	bool isLast() const;
 
-	std::string& text() { if (!n) throw std::exception("Invalid TextCounter"); return n->text[line]; }
-	std::string& type() { if (!n) throw std::exception("Invalid TextCounter"); return n->type; }
+	std::string& text() {
+		if (!n) {
+			throw std::exception("Invalid TextCounter");
+		}
+		while (line > n->text.size()) {
+			operator++();
+		}
+		return n->text[line];
+	}
+	std::string& type() {
+		if (!n) {
+			throw std::exception("Invalid TextCounter");
+		}
+		return n->type;
+	}
 
 protected:
 	TextNode* n = nullptr;
@@ -86,6 +101,8 @@ public:
 	void cutNode(int begin, int end);
 	void insertLine(int index);
 	void remove(int index);
+
+	bool changed;
 
 private:
 	void deleteNode(TextNode* n);

@@ -5,13 +5,14 @@
 #include "constants.h"
 #include "message.h"
 
-#define NUM_CONSONANTS 21
+#define NUM_CONSONANTS 19
 #define NUM_VOWELS 9
 
 typedef std::pair<std::string, std::string> WordPair;
 
-inline extern const std::array<std::string, NUM_CONSONANTS> consonants = { "b", "d", "f", "g", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "w", "z", "ch", "sh", "th", "dh", "'" };
-inline extern const std::array<std::string, NUM_VOWELS> vowels = {"a", "ai", "e", "ee", "i", "o", "oi", "u", "oui"};
+inline extern const std::array<std::string, NUM_CONSONANTS> consonants = { "l", "z", "j", "dh", "g", "b", "n", "d", "v", "'", "r", "s", "sh", "th", "k", "p", "m", "t", "f" };
+//{ "b", "d", "f", "g", "j", "k", "l", "m", "n", "p", "r", "s", "t", "v", "z", "sh", "th", "dh", "'" };
+inline extern const std::array<std::string, NUM_VOWELS> vowels = {"a", "i", "o", "ee", "u", "e", "ai", "oi", "oui"};
 
 
 enum class PART_OF_SPEECH {
@@ -23,6 +24,7 @@ enum class PART_OF_SPEECH {
 	PRONOUN,
 	SHORT,
 	ADVERB,
+	NUMERAL,
 };
 
 struct Grammar {
@@ -40,8 +42,8 @@ struct Grammar {
 
 class Dictionary : private Poster {
 public:
-	Dictionary& summon() {
-		static Dictionary instance;
+	Dictionary* summon() {
+		static Dictionary* instance = new Dictionary();
 		return instance;
 	}
 
@@ -83,6 +85,7 @@ private:
 	bool translateNounAdj(std::string tobair, Grammar& g) const;
 	bool translatePlain(std::string tobair, Grammar& g) const;
 	bool translateBe(std::string tobair, Grammar& g) const;
+	bool translateNumeral(std::string tobair, Grammar& g) const;
 
 private:
 	Dictionary();
@@ -96,5 +99,5 @@ private:
 	std::map<std::array<std::string, 3>, std::string> tobairEnglishMapConsonants;
 	std::map<std::string, std::string> adverbialPrepositionTobairToEnglishMap;
 
-	const std::filesystem::path dictPath = exePath / "dictionary.txt";
+	const std::filesystem::path dictPath = exePath.parent_path().parent_path() / "dictionary.txt";
 };

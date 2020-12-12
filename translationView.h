@@ -15,10 +15,11 @@ public:
 	void resize(int width, int height) { screenWidth = width, screenHeight = height; }
 
 protected:
-	bool extraCreateDeviceIndependentResources() override;
+	bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
 	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
 	void extraDiscardDeviceDependentResources() override;
 	void extraHandleLeftClick(int posx, int posy) override;
+	void extraHandleLeftDoubleClick(int posx, int posy) override;
 	void handleLeftUnclick(int posx, int posy) override;
 	void handleDrag(int posx, int posy) override; 
 	void handleScroll(int scrollTimes) override;
@@ -26,16 +27,18 @@ protected:
 
 private:
 	void indexToScreen(int indexX, int indexY, int* screenX, int* screenY) const;
-	void screenToIndex(int screenX, int screenY, int* indexX, int* indexY, bool keepParity=false) const;
+	void screenToIndex(int screenX, int screenY, int* indexX, int* indexY, bool keepParity=false, bool accurate=false) const;
 	void deleteSelection();
 	void copySelectBoth();
 	void copySelected();
 	void paste();
-	int getIndexFromLine(int cursorPosY, int screenX) const;
+	int getIndexFromLine(int cursorPosY, int screenX, bool accurate=false) const;
 	int getLineHeight(std::string tag) const;
 	IDWriteTextFormat* getTextFormat(std::string tag) const;
 	void drawOutline(ID2D1HwndRenderTarget* renderTarget) const;
 	void drawHover(ID2D1HwndRenderTarget* rt) const;
+	bool terminatesWord(char letter) const;
+	void breakNode();
 
 private:
 	float scrollAmount = 0;
@@ -63,6 +66,8 @@ private:
 	int h3Size;
 	int pSize;
 
-	Dictionary dictionary = dictionary.summon();
+	Dictionary* dictionary = dictionary->summon();
 	Grammar grammar;
+
+	bool hoverBoxOpen = false;
 };

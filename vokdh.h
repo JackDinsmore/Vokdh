@@ -107,10 +107,12 @@ private:
 	void resize();
 	bool handleKeyPress(int key);
 	void handleLeftClick(int keydown, int posx, int posy);
+	void handleLeftDoubleClick(int posx, int posy);
 	void toggleFullscreen();
 	void saveAs();
 	void open();
 	void newFile();
+	bool checkChanged();
 
 private:
 	ID2D1Factory* factory = nullptr;

@@ -26,15 +26,18 @@ enum class VIEW_TYPE {
 	GRAMMAR,
 	PREPOSITIONS,
 	SHORT_WORDS,
+	TEXT,
 };
 
 
 class TranslationView;
 class HelpView;
 class DictionaryView;
-class GrammarView; 
+class GrammarView;
 class PrepositionsView;
 class ShortWordsView;
+class TextView;
+
 
 class View : protected Poster {
 public:
@@ -44,7 +47,7 @@ public:
 	virtual void draw(ID2D1HwndRenderTarget* renderTarget);
 	virtual void resize(int width, int height) = 0;
 
-	bool createDeviceIndependentResources();
+	bool createDeviceIndependentResources(HINSTANCE hInst);
 	bool createDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget);
 	void discardDeviceDependentResources();
 	virtual bool handleControlShiftKeyPress(int key) { return false; }
@@ -53,6 +56,7 @@ public:
 	virtual void handleDrag(int posx, int posy) {}
 	virtual void handleLeftUnclick(int posx, int posy) {}
 	void handleLeftClick(int posx, int posy) { extraHandleLeftClick(posx, posy); }
+	void handleLeftDoubleClick(int posx, int posy) { extraHandleLeftDoubleClick(posx, posy); }
 	virtual void handleScroll(int scrollTimes) {}
 	virtual void handleMouseMotion(int x, int y) {};
 	void open();
@@ -66,10 +70,11 @@ protected:
 	virtual void extraDraw(ID2D1HwndRenderTarget* renderTarget) const = 0;
 
 	virtual void extraInit() {}
-	virtual bool extraCreateDeviceIndependentResources() { return true; }
+	virtual bool extraCreateDeviceIndependentResources(HINSTANCE hInst) { return true; }
 	virtual bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) { return true; }
 	virtual void extraDiscardDeviceDependentResources() {}
 	virtual void extraHandleLeftClick(int posx, int posy) {}
+	virtual void extraHandleLeftDoubleClick(int posx, int posy) {}
 
 protected:
 	TextTree& textTree;
@@ -87,6 +92,7 @@ protected:
 	D2D1::ColorF bgColor = D2D1::ColorF(D2D1::ColorF::Black);
 };
 
+
 class ViewHandler {
 	friend class Vokdh;
 public:
@@ -94,15 +100,16 @@ public:
 		static ViewHandler handler;
 		return handler;
 	}
-	
+
 	bool handleControlShiftKeyPress(int key) { return view()->handleControlShiftKeyPress(key); }
 	bool handleKeyPress(int key);
 	bool handleControlKeyPress(int key);
-	void createDeviceIndependentResources() { view()->createDeviceIndependentResources(); }
+	void createDeviceIndependentResources(HINSTANCE hInst);
 	void createDeviceDependentResources(ID2D1HwndRenderTarget* rt) { view()->createDeviceDependentResources(rt); }
 	void discardDeviceDependentResources() { view()->discardDeviceDependentResources(); }
 	void handleLeftUnclick(int x, int y) { view()->handleLeftUnclick(x, y); }
 	void handleLeftClick(int x, int y) { view()->handleLeftClick(x, y); }
+	void handleLeftDoubleClick(int x, int y) { view()->handleLeftDoubleClick(x, y); }
 	void handleScroll(int amt) { view()->handleScroll(amt); }
 	void handleDrag(int x, int y) { view()->handleDrag(x, y); }
 	void handleMouseMotion(int x, int y) { view()->handleMouseMotion(x, y); }
@@ -132,5 +139,6 @@ private:
 	GrammarView* grammarView;
 	PrepositionsView* prepositionsView;
 	ShortWordsView* shortWordsView;
+	TextView* textView;
 	VIEW_TYPE viewType;
 };

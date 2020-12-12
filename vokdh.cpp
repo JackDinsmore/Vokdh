@@ -5,6 +5,8 @@
 #include <stack>
 #include <shellscalingapi.h>
 #include <windowsx.h>
+#include <chrono>
+#include <thread>
 
 Vokdh::Vokdh(std::string commandLine) : loader(textTree), viewHandler(textTree) {
 	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
@@ -22,10 +24,11 @@ Vokdh::Vokdh(std::string commandLine) : loader(textTree), viewHandler(textTree) 
 
 BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
+
 	WNDCLASS wc = { 0 };
 
 	HICON icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
-
+	wc.style = CS_DBLCLKS;
 	wc.lpfnWndProc = Vokdh::windowProc;
 	wc.hInstance = GetModuleHandle(NULL);
 	wc.lpszClassName = L"Vokdh class";
@@ -37,12 +40,16 @@ BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	hwnd = CreateWindow(L"Vokdh class", L"Vokdh", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, this);
 
-	viewHandler.createDeviceIndependentResources();
+	viewHandler.createDeviceIndependentResources(hInstance);
 
 	return (hwnd ? TRUE : FALSE);
 }
 
 void Vokdh::update() {
+	if (IsIconic(hwnd)) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(FRAMERATE));
+		return;
+	}
 	Message msg;
 	for (int i = 0; i < getQueueSize(); i++) {
 		peekMessage(&msg, i);
@@ -105,6 +112,10 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		handleLeftClick(wParam, GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		return 0;
 
+	case WM_LBUTTONDBLCLK:
+		handleLeftDoubleClick(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		return 0;
+
 	case WM_LBUTTONUP:
 		viewHandler.handleLeftUnclick(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
 		return 0;
@@ -119,6 +130,12 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		}
 		else {
 			viewHandler.handleMouseMotion(GET_X_LPARAM(lParam) * 96.0 / dpi, GET_Y_LPARAM(lParam) * 96.0 / dpi);
+		}
+		return 0;
+
+	case WM_CLOSE:
+		if (checkChanged()) {
+			DestroyWindow(hwnd);
 		}
 		return 0;
 
@@ -177,6 +194,7 @@ void Vokdh::paint() {
 		}
 		EndPaint(hwnd, &ps);
 	}
+	discardDeviceDependentResources();
 }
 
 void Vokdh::resize() {
@@ -195,6 +213,10 @@ void Vokdh::resize() {
 
 void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
 	viewHandler.handleLeftClick(posx, posy);
+}
+
+void Vokdh::handleLeftDoubleClick(int posx, int posy) {
+	viewHandler.handleLeftDoubleClick(posx, posy);
 }
 
 bool Vokdh::handleKeyPress(int key) {
@@ -307,8 +329,20 @@ void Vokdh::open() {
 	}
 }
 
+bool Vokdh::checkChanged() {
+	if (textTree.changed) {
+		int res = MessageBox(hwnd, L"The text of the document has been changed. Are you sure you want to discard these changes?", L"Discard changes", MB_OKCANCEL);
+		if (res == IDCANCEL) {
+			return false;
+		}
+	}
+	return true;
+}
+
 void Vokdh::newFile() {
-	/// Check if current file has been saved.
+	if (!checkChanged()) {
+		return;
+	}
 	loader.unload();
 	loader.newFile();
 	viewHandler.open();

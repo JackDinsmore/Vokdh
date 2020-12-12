@@ -1,0 +1,5 @@
+1. Make an end of paragraph symbol, and numbers.
+
+2. Special lines for headers
+
+3. Implement recalculatePagePoses for TextView, and make it run every time the window is opened.

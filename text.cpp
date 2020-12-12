@@ -9,10 +9,12 @@ TextCounter TextCounter::operator+(int amount) const {
 	int linesLeft = n->text.size() - line - 1;
 	while (amount > linesLeft) {
 		amount -= linesLeft + 1;// One is added because one is required to get the next n.
-		returnNode = NodeCounter::getNextNode(returnNode);
-		if (!returnNode) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getNextNode(returnNode);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return TextCounter(returnNode, amount);
 		}
+		returnNode = newNode;
 		linesLeft = returnNode->text.size() - 1;
 	}
 	return TextCounter(returnNode, amount);
@@ -23,7 +25,8 @@ void TextCounter::operator+=(int amount) {
 		amount -= linesLeft + 1;// One is added because one is required to get the next n.
 		n = NodeCounter::getNextNode(n);
 		if (!n) {
-			throw std::exception("Index out of bounds.");
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return;
 		}
 		linesLeft = n->text.size();
 		line = 0;
@@ -35,10 +38,12 @@ TextCounter& TextCounter::operator++() {
 		line++;
 	}
 	else {
-		n = NodeCounter::getNextNode(n);
-		if (!n) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getNextNode(n);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return *this;
 		}
+		n = newNode;
 		line = 0;
 	}
 	return *this;
@@ -48,10 +53,12 @@ TextCounter TextCounter::operator++(int) {
 		line++;
 	}
 	else {
-		n = NodeCounter::getNextNode(n);
-		if (!n) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getNextNode(n);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return *this;
 		}
+		n = newNode;
 		line = 0;
 	}
 	return *this;
@@ -62,10 +69,12 @@ TextCounter TextCounter::operator-(int amount) const {
 	int linesLeft = line;
 	while (amount > linesLeft) {
 		amount -= linesLeft + 1;// One is added because one is required to get the next n.
-		returnNode = NodeCounter::getLastNode(returnNode);
-		if (!returnNode) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getLastNode(returnNode);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return TextCounter(returnNode, returnNode->text.size() - amount);
 		}
+		returnNode = newNode;
 		linesLeft = returnNode->text.size();
 	}
 	return TextCounter(returnNode, returnNode->text.size() - amount);
@@ -76,7 +85,7 @@ void TextCounter::operator-=(int amount) {
 		amount -= linesLeft + 1;// One is added because one is required to get the next n.
 		n = NodeCounter::getLastNode(n);
 		if (!n) {
-			throw std::exception("Index out of bounds.");
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
 		}
 		linesLeft = n->text.size();
 	}
@@ -87,10 +96,12 @@ TextCounter& TextCounter::operator--() {
 		line--;
 	}
 	else {
-		n = NodeCounter::getLastNode(n);
-		if (!n) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getLastNode(n);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return *this;
 		}
+		n = newNode;
 		line = n->text.size() - 1;
 	}
 	return *this;
@@ -100,10 +111,12 @@ TextCounter TextCounter::operator--(int) {
 		line--;
 	}
 	else {
-		n = NodeCounter::getLastNode(n);
-		if (!n) {
-			throw std::exception("Index out of bounds.");
+		TextNode* newNode = NodeCounter::getLastNode(n);
+		if (!newNode) {
+			postMessage(MESSAGE_TYPE::M_WARNING, "Text counter index out of bounds.");
+			return *this;
 		}
+		n = newNode;
 		line = n->text.size() - 1;
 	}
 	return *this;
@@ -148,10 +161,11 @@ TextNode* NodeCounter::getNextNode(TextNode* node) {
 	// Select the next branch
 	now = *(std::find(now->children.begin(), now->children.end(), last) + 1);
 
+	/*
 	// Search downwards, taking all the left branches.
 	while (!now->children.empty()) {
 		now = now->children[0];
-	}
+	}*/
 	return now;
 }
 
@@ -175,7 +189,7 @@ TextNode* NodeCounter::getLastNode(TextNode* node) {
 
 
 TextTree::TextTree(TextNode* root) : root(root) {
-	
+	changed = false;
 }
 
 TextCounter TextTree::operator[](int line) const {
@@ -185,11 +199,13 @@ TextCounter TextTree::operator[](int line) const {
 
 TextTree::TextTree(TextTree&& t) {
 	root = std::move(t.root);
+	changed = t.changed;
 	t.root = nullptr;
 }
 
 TextTree& TextTree::operator=(TextTree&& t) {
 	root = std::move(t.root);
+	changed = t.changed;
 	t.root = nullptr;
 	return *this;
 }
@@ -335,6 +351,8 @@ bool FileLoader::loadFile(const std::filesystem::path filePath) {
 		postMessage(MESSAGE_TYPE::M_ERROR, "Unclosed headers exist.");
 		return false;
 	}
+
+	textTree.changed = false;
 	return true;
 }
 
@@ -343,6 +361,8 @@ void FileLoader::saveFile(const std::filesystem::path filePath) {
 	file.open(filePath);
 	writeNode(textTree.root, &file);
 	file.close();
+
+	textTree.changed = false;
 }
 
 void FileLoader::writeNode(const TextNode* n, std::ofstream* file) {
@@ -376,10 +396,12 @@ void FileLoader::unload() {
 	textTree.~TextTree();
 }
 
+
 TextTree::TextTree() {
 	root = new TextNode;
 	root->type = "document";
 	root->children.push_back(new TextNode);
 	root->children[0]->type = "p";
 	root->children[0]->text.push_back("\n");
+	changed = false;
 }
