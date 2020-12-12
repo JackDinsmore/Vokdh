@@ -6,6 +6,9 @@
 *.lo
 *.o
 *.obj
+*.iobj
+*.pdb
+*.ipdb
 
 # Precompiled Headers
 *.gch
@@ -26,13 +29,7 @@
 *.a
 *.lib
 
-# Executables
-*.exe
-*.out
-*.app
-
 # VS
 .vs/
-x64/Debug/
-x64/Release
+x64/Debug/*
 Debug/
