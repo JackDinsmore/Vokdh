@@ -41,7 +41,7 @@ class TextView;
 
 class View : protected Poster {
 public:
-	View(TextTree& textTree) : textTree(textTree) { open(); }
+	View(TextTree& textTree) : textTree(textTree) { handleReopen(); }
 
 public:
 	virtual void draw(ID2D1HwndRenderTarget* renderTarget);
@@ -59,7 +59,7 @@ public:
 	void handleLeftDoubleClick(int posx, int posy) { extraHandleLeftDoubleClick(posx, posy); }
 	virtual void handleScroll(int scrollTimes) {}
 	virtual void handleMouseMotion(int x, int y) {};
-	void open();
+	virtual void handleReopen() {};
 
 public:
 	bool stageResize = true;
@@ -94,7 +94,7 @@ protected:
 
 
 class ViewHandler {
-	friend class Vokdh;
+	friend class Vokdhi;
 public:
 	static ViewHandler& summon() {
 		static ViewHandler handler;
@@ -115,7 +115,7 @@ public:
 	void handleMouseMotion(int x, int y) { view()->handleMouseMotion(x, y); }
 	void draw(ID2D1HwndRenderTarget* rt);
 	void stageResize() { view()->stageResize = true; }
-	void open() { view()->open(); }
+	void handleReopen() { view()->handleReopen(); }
 
 	void switchTo(VIEW_TYPE);
 

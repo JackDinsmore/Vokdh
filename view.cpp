@@ -38,10 +38,6 @@ void View::draw(ID2D1HwndRenderTarget* renderTarget) {
 	extraDraw(renderTarget);
 }
 
-void View::open() {
-
-}
-
 
 
 
@@ -146,6 +142,7 @@ void ViewHandler::switchTo(VIEW_TYPE vt) {
 	}
 	viewType = vt;
 	view()->resize(width, height);
+	view()->handleReopen();
 }
 
 void ViewHandler::draw(ID2D1HwndRenderTarget* rt) {

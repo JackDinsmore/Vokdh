@@ -3,11 +3,26 @@
 #include <stdlib.h>
 #include "constants.h"
 
+#define NUM_RESULTS 20
+
 const std::array<int, NUM_CONSONANTS> frequencies = { 5, 4, 10, 2, 9, 13, 17, 7, 15, 3, 20, 14, 23, 7, 9, 4, 10, 8, 9 };
 
 
 DictionaryView::DictionaryView(TextTree& textTree) : View(textTree) {
 	srand(time(NULL));
+}
+
+void DictionaryView::handleReopen() {
+	wordIndex = 0;
+	allWords = false;
+	wordIndex = 0;
+	selectionIndex = 0;
+	if (enterEnglish) {
+		bigWindowIterator = dictionary->englishTobairMap.begin();
+	}
+	else {
+		bigWindowIterator = dictionary->tobairEnglishMap.begin();
+	}
 }
 
 bool DictionaryView::extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) {
@@ -30,6 +45,15 @@ bool DictionaryView::extraCreateDeviceIndependentResources(HINSTANCE hInst) {
 }
 
 void DictionaryView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
+	if (allWords) {
+		displayBigWindow(renderTarget);
+	}
+	else {
+		displaySmallWindow(renderTarget);
+	}
+}
+
+void DictionaryView::displaySmallWindow(ID2D1HwndRenderTarget* renderTarget) const {
 	renderTarget->FillRectangle({ SUB_MENU_LR_BUFFER, SUB_MENU_TB_BUFFER, screenWidth - SUB_MENU_LR_BUFFER, screenHeight - SUB_MENU_TB_BUFFER }, backBrush);
 
 	ID2D1SolidColorBrush* textBrush = (enterEnglish ? englishBrush : tobairBrush);
@@ -66,7 +90,7 @@ void DictionaryView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 	if (!isDefiningNewWord) {
 		// Results
 		FLOAT ypos = SUB_MENU_TB_BUFFER + TEXT_BUFFER + 30;
-		for (int i = 0; i < actualNumResults; i++) {
+		for (int i = wordIndex; i < min(wordIndex + numResultsDisplayed, actualNumResults); i++) {
 			if (selectionIndex == i) {
 				renderTarget->FillRectangle({ SUB_MENU_LR_BUFFER + TEXT_BUFFER, ypos,
 					screenWidth - SUB_MENU_LR_BUFFER - TEXT_BUFFER, ypos + 50 }, blackBrush);
@@ -111,6 +135,37 @@ void DictionaryView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 
 		searchTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
 	}
+}\
+
+void DictionaryView::displayBigWindow(ID2D1HwndRenderTarget* renderTarget) const {
+	// Show entire dictionary
+	renderTarget->FillRectangle({ 0, 0, screenWidth, screenHeight }, backBrush);
+
+	// Results
+	FLOAT ypos = 30;
+	auto tempIterator = bigWindowIterator;
+	for (int i = 0; i < bigWindowNumWords; i++) {
+		if (selectionIndex == i + wordIndex) {
+			renderTarget->FillRectangle({ SUB_MENU_LR_BUFFER + TEXT_BUFFER, ypos,
+				screenWidth - SUB_MENU_LR_BUFFER - TEXT_BUFFER, ypos + 50 }, blackBrush);
+		}
+
+		std::wstring text, trans;
+		text = std::wstring(tempIterator->first.begin(), tempIterator->first.end());
+		trans = std::wstring(tempIterator->second.begin(), tempIterator->second.end());
+		renderTarget->DrawText(text.c_str(), text.size(), searchTextFormat, { SUB_MENU_LR_BUFFER + 2 * TEXT_BUFFER, ypos + 10,
+			screenWidth / 2 + TEXT_BUFFER, ypos + 30 }, (enterEnglish ? englishBrush : tobairBrush));
+		renderTarget->DrawText(trans.c_str(), trans.size(), searchTextFormat, { screenWidth / 2 - TEXT_BUFFER, ypos + 10,
+			screenWidth - SUB_MENU_LR_BUFFER - 2 * TEXT_BUFFER, ypos + 30 }, (enterEnglish ? tobairBrush : englishBrush));
+		ypos += 50;
+		tempIterator++;
+		if (enterEnglish && tempIterator == dictionary->englishTobairMap.end()) {
+			return;
+		}
+		if (!enterEnglish && tempIterator == dictionary->tobairEnglishMap.end()) {
+			return;
+		}
+	}
 }
 
 bool DictionaryView::handleControlShiftKeyPress(int key) {
@@ -119,6 +174,17 @@ bool DictionaryView::handleControlShiftKeyPress(int key) {
 		isDefiningNewWord = !isDefiningNewWord;
 		if (isDefiningNewWord) {
 			isDefiningTobair = true;
+		}
+		return true;
+	case 'D':
+		allWords = true;
+		wordIndex = 0;
+		selectionIndex = 0;
+		if (enterEnglish) {
+			bigWindowIterator = dictionary->englishTobairMap.begin();
+		}
+		else {
+			bigWindowIterator = dictionary->tobairEnglishMap.begin();
 		}
 		return true;
 	}
@@ -176,13 +242,21 @@ bool DictionaryView::handleKeyPress(int key) {
 	}
 	switch (key) {
 	case VK_ESCAPE:
-		if (isDefiningNewWord) {
+		if (isDefiningNewWord && !allWords) {
 			isDefiningNewWord = false;
 			return true;
 		}
 		break;
 	case VK_TAB:
 		enterEnglish = !enterEnglish;
+		wordIndex = 0;
+		selectionIndex = 0;
+		if (enterEnglish) {
+			bigWindowIterator = dictionary->englishTobairMap.begin();
+		}
+		else {
+			bigWindowIterator = dictionary->tobairEnglishMap.begin();
+		}
 		getResults();
 		return true;
 	case VK_LEFT:
@@ -200,6 +274,9 @@ bool DictionaryView::handleKeyPress(int key) {
 		return true;
 	case VK_DOWN:
 		selectionIndex = min(selectionIndex + 1, actualNumResults - 1);
+		return true;
+	case VK_PRIOR:// Page up
+		wordIndex = 0;
 		return true;
 	case VK_RETURN:
 		if (isDefiningNewWord) {
@@ -235,45 +312,71 @@ bool DictionaryView::handleKeyPress(int key) {
 		}
 		return true;
 	}
-	if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90) || key == VK_OEM_PERIOD ||
-		key == VK_OEM_COMMA || key == VK_OEM_2 || key == VK_OEM_7 || key == VK_OEM_1) {
-		if (selection) { deleteSelection(); }
-		std::string letter = std::string(1, key);
-		if (GetKeyState(VK_SHIFT) & 0x8000) {
-			if (key == 49) { letter = "!"; }
-			if (key == 50) { letter = "@"; }
-			if (key == 51) { letter = "#"; }
-			if (key == 52) { letter = "$"; }
-			if (key == 53) { letter = "%"; }
-			if (key == 54) { letter = "^"; }
-			if (key == 55) { letter = "&"; }
-			if (key == 56) { letter = "*"; }
-			if (key == 57) { letter = "("; }
-			if (key == 48) { letter = ")"; }
-		}
-		else {
-			if (65 <= key && key <= 90) {
-				letter = std::string(1, key + 32);
+	if(allWords){
+		if ('A' <= key && key <= 'Z' || key == VK_OEM_7) {// '
+			// Scroll to letter
+			if (enterEnglish) {
+				bigWindowIterator = dictionary->englishTobairMap.begin();
+			}
+			else {
+				bigWindowIterator = dictionary->tobairEnglishMap.begin();
+			}
+			wordIndex = 0;
+			int alphabetKey = std::tolower(key);
+			if (key == VK_OEM_7) { alphabetKey = '\''; }
+			while (bigWindowIterator->first[0] < alphabetKey) {
+				bigWindowIterator++;
+				wordIndex++;
+				if ((enterEnglish && bigWindowIterator == dictionary->englishTobairMap.end()) ||
+					(!enterEnglish && bigWindowIterator == dictionary->tobairEnglishMap.end())) {
+					bigWindowIterator--;
+					wordIndex--;
+					break;//return true;
+				}
 			}
 		}
-		if (GetKeyState(VK_SHIFT) & 0x8000) {
-			if (key == VK_OEM_PERIOD) { letter = '>'; }
-			if (key == VK_OEM_COMMA) { letter = '<'; }
-			if (key == VK_OEM_2) { letter = '?'; }
-			if (key == VK_OEM_7) { letter = '"'; }
-			if (key == VK_OEM_1) { letter = ':'; }
+	}
+	else {
+		if (key == VK_SPACE || (48 <= key && key <= 57) || (65 <= key && key <= 90) || key == VK_OEM_PERIOD ||
+			key == VK_OEM_COMMA || key == VK_OEM_2 || key == VK_OEM_7 || key == VK_OEM_1) {
+			if (selection) { deleteSelection(); }
+			std::string letter = std::string(1, key);
+			if (GetKeyState(VK_SHIFT) & 0x8000) {
+				if (key == 49) { letter = "!"; }
+				if (key == 50) { letter = "@"; }
+				if (key == 51) { letter = "#"; }
+				if (key == 52) { letter = "$"; }
+				if (key == 53) { letter = "%"; }
+				if (key == 54) { letter = "^"; }
+				if (key == 55) { letter = "&"; }
+				if (key == 56) { letter = "*"; }
+				if (key == 57) { letter = "("; }
+				if (key == 48) { letter = ")"; }
+			}
+			else {
+				if (65 <= key && key <= 90) {
+					letter = std::string(1, key + 32);
+				}
+			}
+			if (GetKeyState(VK_SHIFT) & 0x8000) {
+				if (key == VK_OEM_PERIOD) { letter = '>'; }
+				if (key == VK_OEM_COMMA) { letter = '<'; }
+				if (key == VK_OEM_2) { letter = '?'; }
+				if (key == VK_OEM_7) { letter = '"'; }
+				if (key == VK_OEM_1) { letter = ':'; }
+			}
+			else {
+				if (key == VK_OEM_PERIOD) { letter = '.'; }
+				if (key == VK_OEM_COMMA) { letter = ','; }
+				if (key == VK_OEM_2) { letter = '/'; }
+				if (key == VK_OEM_7) { letter = '\''; }
+				if (key == VK_OEM_1) { letter = ';'; }
+			}
+			text = text.substr(0, cursorPos) + letter + text.substr(cursorPos);
+			cursorPos++;
+			getResults();
+			return true;
 		}
-		else {
-			if (key == VK_OEM_PERIOD) { letter = '.'; }
-			if (key == VK_OEM_COMMA) { letter = ','; }
-			if (key == VK_OEM_2) { letter = '/'; }
-			if (key == VK_OEM_7) { letter = '\''; }
-			if (key == VK_OEM_1) { letter = ';'; }
-		}
-		text = text.substr(0, cursorPos) + letter + text.substr(cursorPos);
-		cursorPos++;
-		getResults();
-		return true;
 	}
 	return false;
 }
@@ -348,62 +451,75 @@ int DictionaryView::getIndex(int screen) const {
 }
 
 void DictionaryView::extraHandleLeftClick(int posx, int posy) {
-	if (SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 < posy && posy < SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 + 25) {
-		if (GetKeyState(VK_SHIFT) & 0x8000) {
-			selectedWhileClicking = true;
-
-			if (posx > TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER) {
-				cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
-				selection = true;
-			}
+	if (allWords) {
+		selectionIndex = max(0, wordIndex + (posy - 30) / 50);
+		if (enterEnglish && selectionIndex >= dictionary->englishTobairMap.size()) {
+			selectionIndex = dictionary->englishTobairMap.size() - 1;
 		}
-		else {
-			selectedWhileClicking = false;
-			if (posx > TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER) {
-				cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
-				selectionCursor = cursorPos;
-			}
+		if (!enterEnglish && selectionIndex >= dictionary->tobairEnglishMap.size()) {
+			selectionIndex = dictionary->tobairEnglishMap.size() - 1;
 		}
 	}
 	else {
-		// Results
-	}
+		if (SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 < posy && posy < SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 + 25) {
+			if (GetKeyState(VK_SHIFT) & 0x8000) {
+				selectedWhileClicking = true;
 
-	if (isDefiningNewWord) {
-		// Buttons
-		if (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 < posx && posx < SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 + 130 &&
-			SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
-			// Create
-			submitWord();
+				if (posx > TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER) {
+					cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
+					selection = true;
+				}
+			}
+			else {
+				selectedWhileClicking = false;
+				if (posx > TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER) {
+					cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
+					selectionCursor = cursorPos;
+				}
+			}
+		}
+		else {
+			// Results
 		}
 
-		if (isDefiningTobair && (screenWidth - 130) / 2 < posx && posx < (screenWidth + 130) / 2 &&
-			SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
-			// Random
-			randomText();
-		}
+		if (isDefiningNewWord) {
+			// Buttons
+			if (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 < posx && posx < SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 + 130 &&
+				SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
+				// Create
+				submitWord();
+			}
 
-		if (screenWidth - (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 + 130) < posx && posx < screenWidth - (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20) &&
-			SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
-			// Cancel
-			isDefiningNewWord = false;
+			if (isDefiningTobair && (screenWidth - 130) / 2 < posx && posx < (screenWidth + 130) / 2 &&
+				SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
+				// Random
+				randomText();
+			}
+
+			if (screenWidth - (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20 + 130) < posx && posx < screenWidth - (SUB_MENU_LR_BUFFER + TEXT_BUFFER + 20) &&
+				SUB_MENU_TB_BUFFER + 50 < posy && posy < SUB_MENU_TB_BUFFER + 90) {
+				// Cancel
+				isDefiningNewWord = false;
+			}
 		}
 	}
 }
 
 void DictionaryView::handleLeftUnclick(int posx, int posy) {
-	if (!selectedWhileClicking) {
+	if (!selectedWhileClicking && !allWords) {
 		selection = false;
 	}
 }
 
 void DictionaryView::handleDrag(int posx, int posy) {
-	if (posx < 0 || posy < 0) { return; }
-	if (SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 < posy && posy < SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 + 25) {
-		cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
-		if (selectionCursor != cursorPos) {
-			selection = true;
-			selectedWhileClicking = true;
+	if (!allWords) {
+		if (posx < 0 || posy < 0) { return; }
+		if (SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 < posy && posy < SUB_MENU_TB_BUFFER + TEXT_BUFFER * 2 + 25) {
+			cursorPos = getIndex(posx - (TEXT_BUFFER * 2 + SUB_MENU_LR_BUFFER));
+			if (selectionCursor != cursorPos) {
+				selection = true;
+				selectedWhileClicking = true;
+			}
 		}
 	}
 }
@@ -459,9 +575,10 @@ void DictionaryView::paste() {
 void DictionaryView::resize(int width, int height) {
 	screenWidth = width;
 	screenHeight = height;
-	numResults = (screenHeight - SUB_MENU_TB_BUFFER * 2 - 35) / 50;
+	numResultsDisplayed = (screenHeight - SUB_MENU_TB_BUFFER * 2 - 35) / 50;
+	bigWindowNumWords = (screenHeight - 35) / 50;
 	if (results) { delete[] results; }
-	results = new WordPair[numResults];
+	results = new WordPair[NUM_RESULTS];
 	getResults();
 }
 
@@ -472,8 +589,8 @@ void DictionaryView::getResults() {
 		}
 	}
 	else {
-		if (enterEnglish) { actualNumResults = dictionary->searchEnglish(text, results, numResults); }
-		else { actualNumResults = dictionary->searchTobair(text, results, numResults); }
+		if (enterEnglish) { actualNumResults = dictionary->searchEnglish(text, results, NUM_RESULTS); }
+		else { actualNumResults = dictionary->searchTobair(text, results, NUM_RESULTS); }
 	}
 }
 
@@ -511,4 +628,36 @@ void DictionaryView::submitWord() {
 	}
 	text = "";
 	cursorPos = 0;
+}
+
+void DictionaryView::handleScroll(int scrollTimes) {
+	if (scrollTimes > 0) {
+		wordIndex--;
+	}
+	if (scrollTimes < 0) {
+		wordIndex++;
+	}
+	if (scrollTimes > 0 && wordIndex >= 0) {
+		bigWindowIterator--;
+	}
+	if (scrollTimes < 0){
+		int set = dictionary->englishTobairMap.size();
+		int ste = dictionary->tobairEnglishMap.size();
+		if ((enterEnglish && wordIndex < set) || (!enterEnglish && wordIndex < ste)) {
+			bigWindowIterator++;
+		}
+	}
+	if (allWords) {
+		int s;
+		if (enterEnglish) {
+			s = dictionary->englishTobairMap.size();
+		}
+		else {
+			s = dictionary->tobairEnglishMap.size();
+		}
+		wordIndex = max(min(wordIndex, s - 1), 0);
+	}
+	else {
+		wordIndex = max(min(wordIndex, actualNumResults - 1), 0);
+	}
 }

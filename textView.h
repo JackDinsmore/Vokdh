@@ -4,7 +4,7 @@
 #include "dictionary.h"
 #include <map>
 
-#define NUM_IMAGES (NUM_CONSONANTS + 1) * (NUM_VOWELS + 1)
+#define NUM_IMAGES (NUM_CONSONANTS + 1) * (NUM_VOWELS + 1) + 1
 #define ERROR_CHAR "NULL"
 
 
@@ -15,6 +15,9 @@ public:
 public:
 	void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
 	void resize(int width, int height);
+
+protected:
+	void handleReopen() override { recalculatePagePoses(); }
 
 private:
 	bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;

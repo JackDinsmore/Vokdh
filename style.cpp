@@ -52,34 +52,15 @@ StyleMap::StyleMap() {
 				key = line.substr(startKey, colonPos - 1);
 			}
 			unsigned startValue = colonPos + 1;
-			bool quoted = false;
-			while (startValue < line.size() && (line[startValue] == ' ' || line[startValue] == '\t' || line[startValue] == '\n' || line[startValue] == '"')) {
-				if (line[startValue] == '"') {
-					startValue++;
-					quoted = true;
-					break;
-				}
+			while (startValue < line.size() && (line[startValue] == ' ' || line[startValue] == '\t' || line[startValue] == '\n')) {
 				startValue++;
 			}
 			std::string value = line.substr(startValue);
-			if (quoted) {
-				int i;
-				for (i = value.size(); i >= 0; i--) {
-					if (value[i] == '"') {
-						break;
-					}
-				}
-				if (value[i] != '"') {
-					// EOL encountered while scanning for endquote
-					postMessage(MESSAGE_TYPE::M_ERROR, "EOL encountered while scanning for endquote in the style file");
-				}
-				value = value.substr(0, i);
-			}
 			if (value == "") {
 				header = key;
 			}
 			else {
-				map[header].set(key, value);
+				map[header].setAsIs(key, value);
 			}
 		}
 	}
@@ -98,6 +79,25 @@ MapWrapper StyleMap::operator[](std::string key) const {
 		return MapWrapper();
 	}
 }
+
+void StyleMap::save() {
+	std::ofstream styleFile;
+	styleFile.open(exePath.parent_path().parent_path() / STYLE_FILE);
+
+	if (styleFile.is_open()) {
+		for (auto wrapper : map) {
+			styleFile << wrapper.first + ":\n";
+			for (auto node : wrapper.second.map) {
+				styleFile << "\t" + node.first + ": " + node.second.text + "\n";
+			}
+		}
+	}
+	else {
+		postMessage(MESSAGE_TYPE::M_ERROR, "Style file not found at " + (exePath / STYLE_FILE).generic_string());
+	}
+}
+
+
 
 StyleNode MapWrapper::operator[](std::string key) const {
 	if (map.find(key) != map.end()) {

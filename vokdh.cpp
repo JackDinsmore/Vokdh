@@ -8,36 +8,44 @@
 #include <chrono>
 #include <thread>
 
-Vokdh::Vokdh(std::string commandLine) : loader(textTree), viewHandler(textTree) {
+Vokdhi::Vokdhi(std::string commandLine) : loader(textTree), viewHandler(textTree) {
 	postMessage(MESSAGE_TYPE::M_INFO, "Command line was " + commandLine);
 	if (commandLine != "") {
 		openFilePath = commandLine.substr(1).substr(0, commandLine.size() - 2);
+		if (loader.loadFile(openFilePath)) {
+			return;
+		}
 	}
-	else {
-		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdh/Beowulf.vkd";
-	}
+	StyleMap styleMap = styleMap.summon();
+	openFilePath = (std::string)styleMap["save-data"]["most-recent-file"];
 	if (!loader.loadFile(openFilePath)) {
-		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdh/Beowulf.vkd";
+		openFilePath = "C:/Users/goods/Desktop/Projects/Language/Vokdhi/Beowulf.vkd";
 		loader.loadFile(openFilePath);
 	}
 }
 
-BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
+void Vokdhi::close() {
+	StyleMap styleMap = styleMap.summon();
+	styleMap.set("save-data", "most-recent-file", openFilePath.string());
+	styleMap.save();
+}
+
+BOOL Vokdhi::createDeviceIndependentResources(HINSTANCE hInstance) {
 	SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
 
 	WNDCLASS wc = { 0 };
 
 	HICON icon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
 	wc.style = CS_DBLCLKS;
-	wc.lpfnWndProc = Vokdh::windowProc;
+	wc.lpfnWndProc = Vokdhi::windowProc;
 	wc.hInstance = GetModuleHandle(NULL);
-	wc.lpszClassName = L"Vokdh class";
+	wc.lpszClassName = L"Vokdhi class";
 	wc.hIcon = icon;
 	dpi = GetDpiForSystem();
 
 	RegisterClass(&wc);
 
-	hwnd = CreateWindow(L"Vokdh class", L"Vokdh", WS_OVERLAPPEDWINDOW,
+	hwnd = CreateWindow(L"Vokdhi class", L"Vokdhi", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, this);
 
 	viewHandler.createDeviceIndependentResources(hInstance);
@@ -45,7 +53,7 @@ BOOL Vokdh::createDeviceIndependentResources(HINSTANCE hInstance) {
 	return (hwnd ? TRUE : FALSE);
 }
 
-void Vokdh::update() {
+void Vokdhi::update() {
 	if (IsIconic(hwnd)) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(FRAMERATE));
 		return;
@@ -75,18 +83,18 @@ void Vokdh::update() {
 	logger.update();
 }
 
-LRESULT CALLBACK Vokdh::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	Vokdh* pThis = NULL;
+LRESULT CALLBACK Vokdhi::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	Vokdhi* pThis = NULL;
 
 	if (uMsg == WM_NCCREATE) {
 		CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
-		pThis = (Vokdh*)pCreate->lpCreateParams;
+		pThis = (Vokdhi*)pCreate->lpCreateParams;
 		SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pThis);
 
 		pThis->hwnd = hwnd;
 	}
 	else {
-		pThis = (Vokdh*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+		pThis = (Vokdhi*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	}
 	if (pThis) {
 		return pThis->handleMessage(uMsg, wParam, lParam);
@@ -96,7 +104,7 @@ LRESULT CALLBACK Vokdh::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM l
 	}
 }
 
-LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT Vokdhi::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 	case WM_CREATE:
 		if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &factory))) {
@@ -157,7 +165,7 @@ LRESULT Vokdh::handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-HRESULT Vokdh::createDeviceDependentResources() {
+HRESULT Vokdhi::createDeviceDependentResources() {
 	HRESULT hr = S_OK;
 	if (!renderTarget) {
 		RECT rc;
@@ -172,13 +180,13 @@ HRESULT Vokdh::createDeviceDependentResources() {
 	return hr;
 }
 
-void Vokdh::discardDeviceDependentResources() {
+void Vokdhi::discardDeviceDependentResources() {
 	SafeRelease(&renderTarget);
 
 	viewHandler.discardDeviceDependentResources();
 }
 
-void Vokdh::paint() {
+void Vokdhi::paint() {
 	HRESULT hr = createDeviceDependentResources();
 	if (SUCCEEDED(hr)) {
 		PAINTSTRUCT ps;
@@ -197,7 +205,7 @@ void Vokdh::paint() {
 	discardDeviceDependentResources();
 }
 
-void Vokdh::resize() {
+void Vokdhi::resize() {
 	if (renderTarget != NULL) {
 		RECT rc;
 		GetClientRect(hwnd, &rc);
@@ -211,15 +219,16 @@ void Vokdh::resize() {
 	viewHandler.stageResize();
 }
 
-void Vokdh::handleLeftClick(int keydown, int posx, int posy) {
+
+void Vokdhi::handleLeftClick(int keydown, int posx, int posy) {
 	viewHandler.handleLeftClick(posx, posy);
 }
 
-void Vokdh::handleLeftDoubleClick(int posx, int posy) {
+void Vokdhi::handleLeftDoubleClick(int posx, int posy) {
 	viewHandler.handleLeftDoubleClick(posx, posy);
 }
 
-bool Vokdh::handleKeyPress(int key) {
+bool Vokdhi::handleKeyPress(int key) {
 	if (GetKeyState(VK_CONTROL) & 0x8000 && key != VK_CONTROL) {
 		if (GetKeyState(VK_SHIFT) & 0x8000) {
 			// Control and shift
@@ -259,7 +268,7 @@ bool Vokdh::handleKeyPress(int key) {
 	return false;
 }
 
-void Vokdh::toggleFullscreen() {
+void Vokdhi::toggleFullscreen() {
 	DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
 	WINDOWPLACEMENT placement;
 	if (dwStyle & WS_OVERLAPPEDWINDOW) {
@@ -288,7 +297,7 @@ void Vokdh::toggleFullscreen() {
 	resize();
 }
 
-void Vokdh::saveAs() {
+void Vokdhi::saveAs() {
 	char filename[MAX_PATH];
 
 	OPENFILENAMEA parameters;
@@ -307,7 +316,7 @@ void Vokdh::saveAs() {
 	}
 }
 
-void Vokdh::open() {
+void Vokdhi::open() {
 	/// Check if the current file has been saved.
 
 	char filename[MAX_PATH];
@@ -329,7 +338,7 @@ void Vokdh::open() {
 	}
 }
 
-bool Vokdh::checkChanged() {
+bool Vokdhi::checkChanged() {
 	if (textTree.changed) {
 		int res = MessageBox(hwnd, L"The text of the document has been changed. Are you sure you want to discard these changes?", L"Discard changes", MB_OKCANCEL);
 		if (res == IDCANCEL) {
@@ -339,11 +348,20 @@ bool Vokdh::checkChanged() {
 	return true;
 }
 
-void Vokdh::newFile() {
-	if (!checkChanged()) {
-		return;
+void Vokdhi::newFile() {
+	if (textTree.changed) {
+		int res = MessageBox(hwnd, L"The text of the document has been changed. Are you sure you want to discard these changes?", L"Discard changes", MB_OKCANCEL);
+		if (res == IDCANCEL) {
+			return;
+		}
 	}
+	else {
+		int res = MessageBox(hwnd, L"Are you sure you want to make a new document?", L"New document", MB_OKCANCEL);
+		if (res == IDCANCEL) {
+			return;
+		}
+	}
+
 	loader.unload();
 	loader.newFile();
-	viewHandler.open();
 }

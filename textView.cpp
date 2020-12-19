@@ -49,7 +49,7 @@ void TextView::loadLetterFile() {
 void TextView::loadLetters() {
 	std::string special[10] = { "0", "1", "2", "3", "4", "5", "6", "7", ".", ERROR_CHAR };
 
-	letterSize = { imageSize.width / 20, imageSize.height / 10 };
+	letterSize = { imageSize.width / 20, imageSize.height / 11 };
 	float scale = (float)styleMap["text"]["font-size"] / 100;
 	scaledSize = { (unsigned int)(letterSize.width * scale), (unsigned int)(letterSize.height * scale) };
 
@@ -74,11 +74,16 @@ void TextView::loadLetters() {
 		}
 	}
 
+	// Paragraph
+	loadLetter(0, imageSize.height / 11 * 10, &letterArrays[i]);
+	indexMap[")"] = i;
+	i++;
+
 	delete[] imageData;
 }
 
 void TextView::loadLetter(int x, int y, float** letterData) {
-	D2D1::ColorF onColor = (D2D1::ColorF)styleMap["colors-translation"]["tobair"];
+	D2D1::ColorF onColor = (D2D1::ColorF)styleMap["colors-translation"]["english"];
 
 	int counter = 0;
 	*letterData = new float[letterSize.width * letterSize.height * 4];
@@ -174,10 +179,6 @@ void TextView::extraDraw(ID2D1HwndRenderTarget* renderTarget) const {
 				}
 			}
 			if (letter == "") { break; }
-
-			if (letter == ")") {
-				/// TO DO: periods and paragraphs
-			}
 			else if (letter == " ") {}
 			else {
 				if (indexMap.find(letter) == indexMap.end()) {
@@ -393,8 +394,8 @@ void TextView::handleMouseMotion(int screenX, int screenY) {
 				// Word found
 				if (newHoverIndexX != hoverIndexX || newHoverIndexY != hoverIndexY) {
 					int recentSpace = line.find_last_of(' ', nextSpace-1);
-					if (recentSpace == -1) { recentSpace = 0; }
-					grammar = dictionary->translate(line.substr(recentSpace, nextSpace - recentSpace));
+					std::string word = line.substr(recentSpace+1, nextSpace - recentSpace-1);
+					grammar = dictionary->translate(word);
 					hoverIndexX = newHoverIndexX;
 					hoverIndexY = newHoverIndexY;
 					hoverScreenX = page.left + float(page.right - page.left) / (nColumns) * (columnNum + 1);

@@ -68,6 +68,9 @@ public:
 	std::map<std::string, std::string> tobairEnglishMapPrepositions; 
 	std::map<std::string, std::string> tobairEnglishMapShortenedPrepositions;
 
+	std::map<std::string, std::string> englishTobairMap;
+	std::map<std::string, std::string> tobairEnglishMap;
+
 private:
 	int getTobairScore(std::array<std::string, 3> a, std::array<std::string, 3> b) const;
 	int getEnglishScore(std::string a, std::string b) const;
@@ -93,8 +96,6 @@ private:
 	int shortestPrep = 3;
 	int longestPrep = 0;
 
-	std::map<std::string, std::string> englishTobairMap;
-	std::map<std::string, std::string> tobairEnglishMap;
 	std::map<std::string, std::array<std::string, 3>> englishTobairMapConsonants;
 	std::map<std::array<std::string, 3>, std::string> tobairEnglishMapConsonants;
 	std::map<std::string, std::string> adverbialPrepositionTobairToEnglishMap;

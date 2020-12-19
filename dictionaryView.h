@@ -21,6 +21,8 @@ protected:
 	void extraHandleLeftClick(int posx, int posy) override;
 	void handleLeftUnclick(int posx, int posy) override;
 	void handleDrag(int posx, int posy) override;
+	void handleScroll(int scrollTimes) override;
+	void handleReopen() override;
 
 private:
 	int getScreenPos(int index) const;
@@ -31,6 +33,8 @@ private:
 	void getResults();
 	void randomText();
 	void submitWord();
+	void displaySmallWindow(ID2D1HwndRenderTarget* renderTarget) const;
+	void displayBigWindow(ID2D1HwndRenderTarget* renderTarget) const;
 
 private:
 	int cursorPos = 0;
@@ -39,10 +43,13 @@ private:
 	bool selectedWhileClicking;
 	std::string text;
 	bool enterEnglish = true;
-	int numResults;
+	int numResultsDisplayed;
+	int bigWindowNumWords;
 	int actualNumResults;
 	WordPair* results = nullptr;
 	int selectionIndex = 0;
+	int wordIndex = 0;
+	std::map<std::string, std::string>::iterator bigWindowIterator;
 
 	ID2D1SolidColorBrush* selectBrush = nullptr;
 	ID2D1SolidColorBrush* blackBrush = nullptr;
@@ -52,6 +59,7 @@ private:
 	bool isDefiningNewWord = false;
 	bool isDefiningTobair;
 	bool isValidTobair = false;
+	bool allWords = false;
 	std::string newTobairWord;
 
 	Dictionary* dictionary = dictionary->summon();

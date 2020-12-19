@@ -27,9 +27,9 @@ std::vector<std::wstring> grammarText = {
 	"Past\t\ta\tInd\t\t-(e)\t(Act)\t\ta\n"
 	"Present\t\te\tImp\t\tai\tPass\t\to\n"
 	"Future\t\toi\tIntro\t\tu\tRef\t\tai\n"
-	"\t\t\tRelative\ta\n"
-	"\t\t\tPurpose\t\toui\n"
-	"\t\t\tResult\t\ti\n"
+	"\t\t\tRelative\ta\tGen\t\te\n"
+	"\t\t\tPurp/result\t\toui\n"
+	"\t\t\tCond\t\ti\n"
 	"\t\t\tIndirect\to\n\n"
 	"Suffixes:\n"
 	"Imp\t\te\t+time\t\toi\t-time\t\ta\n\n"
@@ -39,7 +39,8 @@ std::vector<std::wstring> grammarText = {
 	"Notes:\n"
 	"- Only use the active ending for Ind. verbs or when the last consonant is '\n"
 	"- The Intro mood is for since or if clauses, etc.\n"
-	"- Use the Ind. vowel near ' or with double letters",
+	"- Use the Ind. vowel near ' or with double letters\n"
+	"- Use the General voice for \"it is necessary,\" \"It grows dark,\" etc.",
 
 	L"Order:\n"
 	"- (Introductory words) (Verb adv) (Noun adj adv) (DO) (Subordinate clauses).\n"
@@ -92,4 +93,21 @@ void GrammarView::handleScroll(int scrollTimes) {
 	textIndex = max(textIndex, 0);
 
 	textIndex = min(textIndex, grammarText.size() - 1);
+}
+
+bool GrammarView::handleKeyPress(int key) {
+	switch (key) {
+	case VK_UP:
+		textIndex--;
+		textIndex = max(textIndex, 0);
+		textIndex = min(textIndex, grammarText.size() - 1);
+		return true;
+
+	case VK_DOWN:
+		textIndex++;
+		textIndex = max(textIndex, 0);
+		textIndex = min(textIndex, grammarText.size() - 1);
+		return true;
+	}
+	return false;
 }

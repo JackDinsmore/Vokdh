@@ -558,6 +558,7 @@ bool Dictionary::translateVerb(std::string tobair, Grammar& g) const {
 		if (consonant.empty()) { return false; }
 		wordConsonants[0] = consonant;
 
+		// Tense
 		if (vowel == "a") { g.info[0] = "past"; }
 		else if (vowel == "e") { g.info[0] = "present"; }
 		else if (vowel == "oi") { g.info[0] = "future"; }
@@ -570,12 +571,13 @@ bool Dictionary::translateVerb(std::string tobair, Grammar& g) const {
 		consonant = takeOffConsonant(&verbStrip);
 		if (!consonant.empty()) {
 			wordConsonants[1] = consonant;
+			// Mood
 			if (vowel == "e" || vowel == "") { g.info[1] = "ind"; }
 			else if (vowel == "ai") { g.info[1] = "imper"; }
 			else if (vowel == "u") { g.info[1] = "intro"; }
 			else if (vowel == "a") { g.info[1] = "rel"; }
-			else if (vowel == "oui") { g.info[1] = "purp"; }
-			else if (vowel == "i") { g.info[1] = "res"; }
+			else if (vowel == "oui") { g.info[1] = "purp / res"; }
+			else if (vowel == "i") { g.info[1] = "cond"; }
 			else if (vowel == "o") { g.info[1] = "indir"; }
 			else {
 				return false;
@@ -585,9 +587,12 @@ bool Dictionary::translateVerb(std::string tobair, Grammar& g) const {
 			consonant = takeOffConsonant(&verbStrip);
 			if (!consonant.empty()) {
 				wordConsonants[2] = consonant;
+
+				// Voice
 				if (vowel == "a" || vowel == "") { g.info[2] = "act"; }
 				else if (vowel == "o") { g.info[2] = "pass"; }
 				else if (vowel == "ai") { g.info[2] = "ref"; }
+				else if (vowel == "e") { g.info[2] = "gen"; }
 				else {
 					return false;
 				}

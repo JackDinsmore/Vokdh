@@ -13,7 +13,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR pCmdLine, int nCmdShow) 
 	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
 	exePath = std::string(buffer).substr(0, pos);
 
-	Vokdh vokdh = Vokdh(std::string(pCmdLine));
+	Vokdhi vokdh = Vokdhi(std::string(pCmdLine));
 
 	if (!vokdh.createDeviceIndependentResources(hInstance)) { return 0; }
 
@@ -35,6 +35,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, PSTR pCmdLine, int nCmdShow) 
 			vokdh.update();
 		}
 	}
+
+	vokdh.close();
 
 	return 0;
 }

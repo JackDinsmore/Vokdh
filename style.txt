@@ -1,24 +1,26 @@
 colors-translation:
-	background:{0.1, 0.1, 0.1}
-	dark-background:{0, 0, 0}
-	foreground:{0.9, 0.9, 0.9}
-	english:{0.8, 0.8, 0.8}
-	tobair:{0.9, 0.45, 0}
-	selection:{1.0, 0.7, 0.4}
+	background: {0.1, 0.1, 0.1}
+	dark-background: {0, 0, 0}
+	english: {0.8, 0.8, 0.8}
+	foreground: {0.9, 0.9, 0.9}
+	selection: {1.0, 0.7, 0.4}
+	tobair: {0.9, 0.45, 0}
 fonts:
-	english:"Calibri"
-	tobair:"None"
+	english: "Calibri"
 	h1-size: 32
 	h2-size: 24
 	h3-size: 18
 	p-size: 16
-logger:
-	logger-level:"debug"
+	tobair: "None"
 keys:
-	help:"h"
-	save:"ctrl+s"
+	help: "h"
+	save: "ctrl+s"
+logger:
+	logger-level: "debug"
+save-data:
+	most-recent-file: "C:\Users\goods\Dropbox (Personal)\Novel\Language\human-rights.vkd"
 text:
 	font-size: 12
 	num-columns: 10
-	page-width: 6
 	page-height: 8
+	page-width: 6

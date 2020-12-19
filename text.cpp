@@ -343,7 +343,7 @@ bool FileLoader::loadFile(const std::filesystem::path filePath) {
 	}
 
 	else {
-		postMessage(MESSAGE_TYPE::M_ERROR, "File " + filePath.filename().generic_string() + " could not be found.");
+		postMessage(MESSAGE_TYPE::M_WARNING, "File " + filePath.filename().generic_string() + " could not be found.");
 		return false;
 	}
 

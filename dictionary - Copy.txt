@@ -1,0 +1,153 @@
+#prepositions
+akra	back (from)
+atra	towards
+fi	the (proper)
+ja	about (de)
+kan	with (accompaniment)
+katra	because of
+ketera	beyond
+ki'am	without
+li	of
+midha	by means of
+mira	beside
+miza	at
+nidra	except for
+rainu	apart from
+ran	around
+reta	through
+reti	in front of
+rita	among
+si	near
+sidhu	far
+silva	above
+sulva	below
+thafi	before (time)
+utra	away from
+va	in; on
+vida	into
+vidu	out of
+#pronouns
+fai	you (pl)
+fee	you (pau)
+fi	you (sing)
+lai	we (pl)
+lee	we (pau)
+li	I
+rai	they (pl)
+rathai	these (pl)
+rathee	these (pau)
+rathi	this
+ree	they (pau)
+ri	he/she/it (sing)
+vidhai	which (pl)
+vidhee	which (pau)
+vidhi	which (sing)
+zothai	those (pl)
+zothee	those (pau)
+zothi	that
+#questionWords
+atride	whither
+ilde	where
+inde	when
+inzir	when
+irde	why
+kitride	whence
+lade	whether
+lan	who
+ra'il	how; what kind
+ran	which
+thilde	how many
+#shortWords
+'a	indicate DO
+dhari	as if
+gatra	although
+ir	and
+la	or
+lashir	not
+ni	but
+razeera	furthermore
+razir	since
+shir	neither; nor
+#words
+' b z	burn
+' m dh	live
+' n r	bring up; raise
+' t l	persist; remain
+b m n	narrate
+b n k	droop
+b sh r	dig
+d d t	can (irreg)
+f b r	be (irreg)
+f n m	fly
+f s l	decide fairly
+f sh p	fear; shake
+f t m	1
+f z n	touch
+j n s	crumble; be like sand; sting
+j t m	0
+k ' n	see
+k k d	spit; sneer; disrespect; demean
+k n dh	free
+k r th	surpass
+k v th	block
+l ' s	walk
+l f t	rest
+l j l	equal
+l t m	4
+l t z	build
+l z t	ask
+m r n	govern
+n g t	listen; attend; revere
+n j sh	attack; invade
+n k dh	partake
+n p th	sleep
+n r dh	beautify
+n t t	emote
+n t z	age
+n th t	rise
+p k s	praise
+p k th	treat; make peace
+p n l	underlie
+r ' m	flood
+r b t	tower; hang over
+r k b	love
+r l m	shine; emit
+r n k	enter
+r n th	think; imagine
+r n v	need
+r s l	consider
+r s n	feel
+r t m	3
+r z v	bless
+s g r	climb
+s n sh	flaw (make a)
+s t '	use
+s t m	2
+t b r	speak (about)
+t l '	fight
+t p r	create
+t r r	give
+t s '	blush
+t th v	separate
+th m z	bear; give birth
+th s n	be the same (as)
+th s z	bring
+th t m	7
+th t t	rain
+v b v	find
+v d b	come; arrive
+v k '	do
+v k dh	write
+v m s	anger; enrage; irritate
+v t m	5
+v th l	enjoy; delight in
+vidhari	the like of which
+z j b	desire; want
+z n j	go to
+z n n	know
+z n t	acknowledge
+z r r	place
+z t m	6
+z th r	protect
+z v n	respect
+zebzai	copper (proper noun)

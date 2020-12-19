@@ -45,7 +45,7 @@ public:
 	void log(Message m) {
 		if (!logFile.is_open()) {
 			logFile.open("vokdh.log");
-			logFile << "Log for Vokdh word processor." << std::endl;
+			logFile << "Log for Vokdhi word processor." << std::endl;
 			time_t  timev;
 			logFile << std::time(&timev) << std::endl;
 		}
@@ -85,9 +85,9 @@ private:
 };
 
 
-class Vokdh : Listener, Poster {
+class Vokdhi : Listener, Poster {
 public:
-	Vokdh(std::string cmdLines);
+	Vokdhi(std::string cmdLines);
 
 public:
 	static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -96,6 +96,7 @@ public:
 	LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	void update();
+	void close();
 
 public:
 	bool quit = false;

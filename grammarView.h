@@ -16,6 +16,7 @@ private:
 	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
 	void extraDiscardDeviceDependentResources() override;
 	void handleScroll(int scrollTimes) override;
+	bool handleKeyPress(int key) override;
 
 private:
 	IDWriteTextFormat* headerFormat;

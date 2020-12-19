@@ -9,13 +9,16 @@
 #define STYLE_FILE "style.txt"
 
 class StyleNode : Poster {
+	friend class StyleMap;
+	friend class MapWrapper;
 public:
 	StyleNode() : text("") {}
 	StyleNode(std::string text) : text(text) {}
 
 public:
 	explicit operator std::string() const {
-		return text;
+		std::string result =  text.substr(1, text.size() - 2);
+		return result;
 	}
 	explicit operator std::wstring() const {
 		try {
@@ -55,8 +58,24 @@ public:
 	}
 	explicit operator D2D1::ColorF() const;
 
-private:
+protected:
 	std::string text;
+
+	void set(std::string s) {
+		text = "\"" + s + "\"";
+	}
+	void set(int i) {
+		text = std::to_string(i);
+	}
+	void set(float f) {
+		text = std::to_string(f);
+	}
+	void set(double d) {
+		text = std::to_string(d);
+	}
+	void set(D2D1::ColorF c) {
+		text = "{" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + "}";
+	}
 };
 
 class MapWrapper : Poster {
@@ -67,7 +86,14 @@ public:
 
 protected:
 	MapWrapper(std::map<std::string, StyleNode>&& map) : map(map), initialized(true) {}
-	void set(std::string key, std::string value) { map[key] = value; initialized = true; }
+	void setAsIs(std::string key, std::string value) {
+		map[key].text = value;
+		initialized = true;
+	}
+	template <class T> void set(std::string key, T value) { 
+		map[key].set(value);
+		initialized = true;
+	}
 
 private:
 	bool initialized;
@@ -82,6 +108,11 @@ public:
 	}
 	MapWrapper operator[](std::string key) const;
 	void save();
+	template <class T> void set(std::string wrapper, std::string key, T value) {
+		MapWrapper newWrapper;
+		newWrapper.set(key, value);
+		map[wrapper] = newWrapper;
+	}
 
 private:
 	StyleMap();
