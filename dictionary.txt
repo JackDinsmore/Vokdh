@@ -7,6 +7,7 @@ kan	with (accompaniment)
 katra	because of
 ketera	beyond
 ki'am	without
+kleti	behind
 li	of
 midha	by means of
 mira	beside
@@ -68,35 +69,46 @@ ni	but
 razeera	furthermore
 razir	since
 shir	neither; nor
+zetra	for the sake of; on account of
 #words
 ' b z	burn
 ' m dh	live
+' m th	compose; make up; form
 ' n r	bring up; raise
 ' t l	persist; remain
 b m n	narrate
 b n k	droop
 b sh r	dig
 d d t	can (irreg)
+dh t d	achieve; accomplish
 f b r	be (irreg)
 f n m	fly
 f s l	decide fairly
 f sh p	fear; shake
 f t m	1
+f t t	depend; hang; turn on
 f z n	touch
+g v t	promote; advance
 j m dh	end
 j n s	crumble; be like sand; sting
 j t m	0
 k ' n	see
+k f z	deserve
 k k d	spit; sneer; disrespect; demean
+k m v	encompass; surround; enclose; fill
 k n dh	free
 k r th	surpass
 k v th	block
 l ' s	walk
 l f t	rest
 l j l	equal
+l r r	promise; affirm
+l r t	measure
+l s n	complete; finish
 l t m	4
 l t z	build
 l z t	ask
+m dh sh	warm, heat, cook
 m r n	govern
 m th z	rebel; revolt, insurrect
 n g t	listen; attend; revere
@@ -111,9 +123,13 @@ n th v	compel; coerce; induce; force
 p k s	praise
 p k th	treat; make peace
 p n l	underlie
+p s '	happen; occur; realize
 r ' m	flood
+r b s	share
 r b t	tower; hang over
+r f dh	develop; manufacture
 r k b	love
+r k g	understand; comprehend; process
 r l m	shine; emit
 r n k	enter
 r n th	think; imagine
@@ -124,14 +140,19 @@ r sh th	command; order; rule
 r t m	3
 r z v	bless
 s g r	climb
+s l s	dominate; loom; shadow
 s n sh	flaw (make a)
+s r t	gather; congregate; be together
 s t '	use
 s t m	2
+s t s	believe; worship
 t b r	speak (about)
 t l '	fight
+t n sh	undertake; take on
 t p r	create
 t r r	give
 t s '	blush
+t th r	follow; obey; bow
 t th v	separate
 th m z	bear; give birth
 th s n	be the same (as)
@@ -140,6 +161,7 @@ th t m	7
 th t t	rain
 v b v	find
 v d b	come; arrive
+v g l	progress; make progress; advance
 v g n	crush
 v k '	do
 v k dh	write
@@ -147,12 +169,17 @@ v k sh	bleed
 v m s	anger; enrage; irritate
 v t m	5
 v th l	enjoy; delight in
+v th th	cover, cloak
 vidhari	the like of which
+z dh r	sign; write a contract; promise in writing
 z j b	desire; want
+z m th	darken; grow dark; set; stain
 z n j	go to
 z n n	know
 z n t	acknowledge
+z r m	enlarge; broaden
 z r r	place
+z t g	cooperate; work with
 z t m	6
 z th r	protect
 z v n	respect

@@ -10,54 +10,54 @@
 
 class TextView : public View {
 public:
-	TextView(TextTree& textTree);
+    TextView(TextTree& textTree);
 
 public:
-	void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
-	void resize(int width, int height);
+    void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
+    void resize(int width, int height);
 
 protected:
-	void handleReopen() override { recalculatePagePoses(); }
+    void handleReopen() override { recalculatePagePoses(); }
 
 private:
-	bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
-	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
-	void extraDiscardDeviceDependentResources() override;
-	void handleScroll(int scrollTimes) override;
-	void handleMouseMotion(int x, int y) override;
+    bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
+    bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
+    void extraDiscardDeviceDependentResources() override;
+    void handleScroll(int scrollTimes) override;
+    void handleMouseMotion(int x, int y) override;
 
-	void loadLetterFile();
-	void loadLetters();
-	void loadLetter(int x, int y, float** letterData);
-	std::string takeLetter(std::string, int* index) const;
-	void drawHover(ID2D1HwndRenderTarget* rt) const;
-	int getWordLength(std::string word) const;
-	void recalculatePagePoses();
+    void loadLetterFile();
+    void loadLetters();
+    void loadLetter(int x, int y, float** letterData);
+    std::string takeLetter(std::string, int* index) const;
+    void drawHover(ID2D1HwndRenderTarget* rt) const;
+    int getWordLength(std::string word) const;
+    void recalculatePagePoses();
 
 private:
 
-	Dictionary* dictionary = dictionary->summon();
-	Grammar grammar;
-	bool hoverBoxOpen = false;
-	int hoverIndexX;
-	int hoverIndexY;
-	int hoverScreenX;
-	int hoverScreenY;
+    Dictionary* dictionary = dictionary->summon();
+    Grammar grammar;
+    bool hoverBoxOpen = false;
+    int hoverIndexX;
+    int hoverIndexY;
+    int hoverScreenX;
+    int hoverScreenY;
 
-	IDWriteTextFormat* textFormat;
-	ID2D1SolidColorBrush* whiteBrush;
-	IDWriteTextFormat* h3EnglishTextFormat;
-	D2D1_RECT_F page;
+    IDWriteTextFormat* textFormat;
+    ID2D1SolidColorBrush* whiteBrush;
+    IDWriteTextFormat* h3EnglishTextFormat;
+    D2D1_RECT_F page;
 
-	const std::filesystem::path lettersPath = exePath.parent_path().parent_path() / "letters.bmp";
+    const std::filesystem::path lettersPath = exePath.parent_path().parent_path() / "letters.bmp";
 
-	bool* imageData;
-	D2D1_SIZE_U imageSize, letterSize, scaledSize;
+    bool* imageData;
+    D2D1_SIZE_U imageSize, letterSize, scaledSize;
 
-	ID2D1Bitmap* letterBitmaps[NUM_IMAGES];
-	float* letterArrays[NUM_IMAGES];
-	std::map<std::string, int> indexMap;
+    ID2D1Bitmap* letterBitmaps[NUM_IMAGES];
+    float* letterArrays[NUM_IMAGES];
+    std::map<std::string, int> indexMap;
 
-	std::vector<std::pair<int, int>> pagePoses;
-	int pageNum;
+    std::vector<std::pair<int, int>> pagePoses;
+    int pageNum;
 };

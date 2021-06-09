@@ -6,24 +6,24 @@
 
 class ShortWordsView : public View {
 public:
-	ShortWordsView(TextTree& textTree) : View(textTree) {}
+    ShortWordsView(TextTree& textTree) : View(textTree) {}
 
 public:
-	void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
-	void resize(int width, int height) { screenWidth = width, screenHeight = height; }
+    void extraDraw(ID2D1HwndRenderTarget* renderTarget) const override;
+    void resize(int width, int height) { screenWidth = width, screenHeight = height; }
 
 private:
-	bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
-	bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
-	void extraDiscardDeviceDependentResources() override;
-	void handleScroll(int scrollTimes) override;
+    bool extraCreateDeviceIndependentResources(HINSTANCE hInst) override;
+    bool extraCreateDeviceDependentResources(ID2D1HwndRenderTarget* renderTarget) override;
+    void extraDiscardDeviceDependentResources() override;
+    void handleScroll(int scrollTimes) override;
 
 private:
-	IDWriteTextFormat* textFormat;
+    IDWriteTextFormat* textFormat;
 
-	ID2D1SolidColorBrush* whiteBrush;
+    ID2D1SolidColorBrush* whiteBrush;
 
-	Dictionary* dictionary = dictionary->summon();
+    Dictionary* dictionary = dictionary->summon();
 
-	int textIndex = 0;
+    int textIndex = 0;
 };
